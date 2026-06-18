@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0a0705">
+<title>PILOTE · Parts de marché</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Black+Ops+One&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  body{overflow-y:auto;overflow-x:hidden;}
+  .wrap{max-width:560px;margin:0 auto;padding:14px 14px 60px;position:relative;z-index:5;}
+
+  .top{display:flex;align-items:center;justify-content:space-between;
+    border-bottom:1px solid var(--line);padding:8px 2px 12px;margin-bottom:14px;}
+  .top .t{font-family:var(--heavy);letter-spacing:.05em;color:var(--amber);font-size:18px;}
+  .conn{display:flex;align-items:center;gap:7px;font-size:12px;letter-spacing:.12em;color:var(--muted);}
+  .conn .d{width:10px;height:10px;border-radius:50%;background:#555;}
+  .conn.ok .d{background:#2ecc71;box-shadow:0 0 10px #2ecc71;}
+  .conn.ko .d{background:var(--red);box-shadow:0 0 10px var(--red);}
+
+  .card{background:linear-gradient(180deg,#1a0e07,#120a05);border:1px solid var(--line);
+    border-left:4px solid var(--tc,var(--red));padding:14px;margin-bottom:14px;}
+  .card h2{margin:0 0 4px;font-family:var(--heavy);font-size:16px;letter-spacing:.04em;}
+  .card .tShare{font-family:var(--display);font-size:46px;line-height:1;color:var(--tc);
+    text-shadow:0 0 18px var(--tc);}
+  .card .tShare .u{font-size:.4em;opacity:.7;}
+  .nameRow{display:flex;gap:8px;align-items:center;margin:6px 0 12px;}
+  .nameRow input{flex:1;background:#0d0704;border:1px solid var(--line);color:var(--ink);
+    font-family:var(--mono);padding:9px 10px;font-size:14px;letter-spacing:.05em;}
+
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  button{font-family:var(--mono);cursor:pointer;border:1px solid var(--line);
+    background:#1f1107;color:var(--ink);padding:14px 0;font-size:16px;letter-spacing:.04em;
+    border-radius:4px;transition:transform .05s,background .15s;}
+  button:active{transform:scale(.94);}
+  .minus{background:#2a0d09;color:#ffb4ad;}
+  .plus{background:#0b2a14;color:#9bf3bd;}
+
+  .section-title{font-size:12px;letter-spacing:.28em;color:var(--muted);margin:22px 2px 8px;
+    border-top:1px dashed var(--line);padding-top:14px;}
+
+  .amount{display:flex;align-items:center;gap:10px;margin:8px 0 12px;}
+  .amount label{font-size:12px;letter-spacing:.16em;color:var(--muted);}
+  .amount input{width:74px;background:#0d0704;border:1px solid var(--line);color:var(--ink);
+    font-family:var(--display);font-size:24px;text-align:center;padding:6px;}
+  .amount .chips{display:flex;gap:6px;}
+  .amount .chips button{flex:1;padding:8px 0;font-size:13px;min-width:42px;}
+
+  .transfer{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .transfer button{padding:16px 0;font-family:var(--heavy);letter-spacing:.05em;font-size:14px;}
+  .transfer .ab{background:#241208;}
+  .transfer .ba{background:#08231f;}
+
+  .skill{width:100%;display:flex;flex-direction:column;gap:10px;background:#2a0d09;
+    border:1px solid var(--red);border-left:4px solid var(--red);padding:14px;margin-bottom:12px;}
+  .skill .sh{display:flex;align-items:center;gap:10px;}
+  .skill .ic{font-size:30px;}
+  .skill .nm{font-family:var(--heavy);font-size:16px;letter-spacing:.04em;}
+  .skill .de{font-size:12px;color:var(--muted);letter-spacing:.05em;line-height:1.4;}
+  .skill .who{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .skill .who button{padding:12px 0;font-size:14px;border:1px solid var(--line);}
+  .skill .who button.sel{outline:2px solid #fff;background:#3a1410;}
+  .fire{font-family:var(--heavy);letter-spacing:.1em;font-size:18px;padding:18px 0;
+    background:var(--red);color:#0a0705;border:none;box-shadow:0 0 24px rgba(255,59,48,.45);}
+  .fire:disabled{opacity:.4;box-shadow:none;}
+
+  .freeRow{display:flex;gap:8px;}
+  .freeRow input{flex:1;background:#0d0704;border:1px solid var(--line);color:var(--ink);
+    font-family:var(--mono);padding:12px;font-size:14px;}
+  .reset{width:100%;background:transparent;border:1px dashed var(--line);color:var(--muted);
+    padding:12px;letter-spacing:.18em;font-size:12px;margin-top:6px;}
+
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(40px);
+    background:var(--amber);color:#0a0705;font-family:var(--heavy);letter-spacing:.06em;
+    padding:12px 22px;border-radius:4px;opacity:0;transition:.3s;z-index:60;pointer-events:none;
+    box-shadow:0 0 24px rgba(255,174,0,.5);font-size:14px;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  .err{background:#2a0d09;border:1px solid var(--red);color:#ffb4ad;padding:16px;
+    line-height:1.6;letter-spacing:.04em;}
+  .err code{background:#1a0e07;color:var(--amber);padding:2px 6px;}
+</style>
+</head>
+<body>
+  <div class="warn-strip top"></div>
+  <div class="biohazard">☣</div>
+  <div class="wrap">
+    <div class="top">
+      <div class="t">☣ PILOTE</div>
+      <div class="conn ko" id="conn"><span class="d"></span><span id="connTxt">CONNEXION…</span></div>
+    </div>
+
+    <div id="app" class="hide">
+      <!-- ÉQUIPE A -->
+      <div class="card" id="cardA">
+        <h2 class="aName">SOUCHE A</h2>
+        <div class="tShare"><span class="aShare">50</span><span class="u">%</span></div>
+        <div class="nameRow"><input class="aInput" maxlength="22" placeholder="Nom souche A"></div>
+        <div class="grid">
+          <button class="minus" data-t="A" data-d="-5">−5</button>
+          <button class="minus" data-t="A" data-d="-1">−1</button>
+          <button class="plus"  data-t="A" data-d="1">+1</button>
+          <button class="plus"  data-t="A" data-d="5">+5</button>
+        </div>
+      </div>
+
+      <!-- ÉQUIPE B -->
+      <div class="card" id="cardB">
+        <h2 class="bName">SOUCHE B</h2>
+        <div class="tShare"><span class="bShare">50</span><span class="u">%</span></div>
+        <div class="nameRow"><input class="bInput" maxlength="22" placeholder="Nom souche B"></div>
+        <div class="grid">
+          <button class="minus" data-t="B" data-d="-5">−5</button>
+          <button class="minus" data-t="B" data-d="-1">−1</button>
+          <button class="plus"  data-t="B" data-d="1">+1</button>
+          <button class="plus"  data-t="B" data-d="5">+5</button>
+        </div>
+      </div>
+
+      <!-- TRANSFERT -->
+      <div class="section-title">TRANSFERT DE PARTS</div>
+      <div class="amount">
+        <label>MONTANT</label>
+        <input type="number" id="tAmt" value="10" min="1" max="100">
+        <div class="chips">
+          <button data-amt="5">5</button><button data-amt="10">10</button><button data-amt="20">20</button>
+        </div>
+      </div>
+      <div class="transfer">
+        <button class="ab" id="ab">A ▸ B</button>
+        <button class="ba" id="ba">B ▸ A</button>
+      </div>
+
+      <!-- COMPÉTENCES -->
+      <div class="section-title">COMPÉTENCES</div>
+      <div id="skills"></div>
+
+      <!-- ANIMATION LIBRE -->
+      <div class="section-title">ANIMATION LIBRE (texte au tableau)</div>
+      <div class="freeRow">
+        <input id="freeText" maxlength="40" placeholder="Ex : EFFONDREMENT BOURSIER">
+        <button class="fire" style="padding:0 18px" id="freeFire">FLASH</button>
+      </div>
+
+      <div class="section-title">PARTIE</div>
+      <button class="reset" id="reset">↺ RÉINITIALISER 50 / 50</button>
+    </div>
+
+    <div id="errBox" class="err hide"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="fx scan" style="opacity:.3"></div>
+  <div class="fx vignette"></div>
+
+  <script type="module">
+    import {
+      configReady, ROOM, ensureState, subscribeState, subscribeConnection,
+      addShare, transfer, setName, resetState, launchSkill, fireEvent,
+      SKILLS, other
+    } from "./firebase.js";
+
+    const $ = (s, r=document) => r.querySelector(s);
+    const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+
+    // pas de zoom/scroll rebond gênant ; garde l'écran allumé
+    let wakeLock=null;
+    async function keepAwake(){ try{ wakeLock = await navigator.wakeLock?.request("screen"); }catch(e){} }
+    document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") keepAwake(); });
+    keepAwake();
+
+    const toastEl = $("#toast");
+    let toastT=null;
+    function toast(msg){
+      toastEl.textContent = msg; toastEl.classList.add("show");
+      clearTimeout(toastT); toastT = setTimeout(()=>toastEl.classList.remove("show"),1300);
+    }
+    function buzz(ms=20){ try{ navigator.vibrate?.(ms); }catch(e){} }
+
+    if (!configReady){
+      const e = $("#errBox"); e.classList.remove("hide");
+      e.innerHTML = "⚠ Firebase non configuré.<br>Ouvre <code>escape/firebase-config.js</code>, colle ta config Firebase puis recharge cette page.";
+    } else {
+      ensureState();
+      $("#app").classList.remove("hide");
+      boot();
+    }
+
+    function boot(){
+      // état de connexion
+      const conn = $("#conn");
+      subscribeConnection((ok)=>{
+        conn.classList.toggle("ok", ok); conn.classList.toggle("ko", !ok);
+        $("#connTxt").textContent = ok ? "EN LIGNE · "+ROOM : "HORS LIGNE";
+      });
+
+      // miroir de l'état
+      let editingA=false, editingB=false;
+      const aInput=$(".aInput"), bInput=$(".bInput");
+      aInput.addEventListener("focus",()=>editingA=true);
+      aInput.addEventListener("blur",()=>{editingA=false; setName("A", aInput.value||"SOUCHE A");});
+      bInput.addEventListener("focus",()=>editingB=true);
+      bInput.addEventListener("blur",()=>{editingB=false; setName("B", bInput.value||"SOUCHE B");});
+
+      subscribeState((st)=>{
+        $(".aShare").textContent = st.teamA.share;
+        $(".bShare").textContent = st.teamB.share;
+        $(".aName").textContent = st.teamA.name;
+        $(".bName").textContent = st.teamB.name;
+        $("#cardA").style.setProperty("--tc", st.teamA.color);
+        $("#cardB").style.setProperty("--tc", st.teamB.color);
+        if(!editingA) aInput.value = st.teamA.name;
+        if(!editingB) bInput.value = st.teamB.name;
+      });
+
+      // +/- parts
+      $$(".grid button").forEach(b=>{
+        b.addEventListener("click",()=>{
+          addShare(b.dataset.t, Number(b.dataset.d));
+          buzz(); toast(`${b.dataset.t} ${b.dataset.d>0?"+":""}${b.dataset.d}`);
+        });
+      });
+
+      // transfert
+      const amt = $("#tAmt");
+      $$(".chips button").forEach(c=>c.addEventListener("click",()=>{amt.value=c.dataset.amt;}));
+      $("#ab").addEventListener("click", async ()=>{ const r=await transfer("A","B",Math.abs(+amt.value||0)); buzz(30); toast(`A ▸ B : ${r}%`); });
+      $("#ba").addEventListener("click", async ()=>{ const r=await transfer("B","A",Math.abs(+amt.value||0)); buzz(30); toast(`B ▸ A : ${r}%`); });
+
+      // compétences
+      const wrap = $("#skills");
+      SKILLS.forEach(sk=>{
+        const el = document.createElement("div");
+        el.className = "skill";
+        const target = sk.needsTarget ? "A" : null;
+        el.innerHTML = `
+          <div class="sh"><span class="ic">${sk.icon}</span><span class="nm">${sk.name}</span></div>
+          <div class="de">${sk.desc}</div>
+          ${sk.needsTarget ? `
+            <div class="de" style="color:var(--ink)">Équipe qui lance :</div>
+            <div class="who">
+              <button data-side="A" class="sel">SOUCHE A</button>
+              <button data-side="B">SOUCHE B</button>
+            </div>` : ``}
+          <div class="amount" style="margin:4px 0 0">
+            <label>PARTS</label>
+            <input type="number" class="skAmt" value="${sk.amount}" min="1" max="100">
+            <div class="chips">
+              <button data-a="5">5</button><button data-a="10">10</button><button data-a="20">20</button>
+            </div>
+          </div>
+          <button class="fire">${sk.icon} DÉCLENCHER</button>`;
+        wrap.appendChild(el);
+
+        let side = target;
+        const skAmt = $(".skAmt", el);
+        $$(".who button", el).forEach(w=>w.addEventListener("click",()=>{
+          side = w.dataset.side;
+          $$(".who button", el).forEach(x=>x.classList.toggle("sel", x===w));
+          buzz();
+        }));
+        $$(".chips button", el).forEach(c=>c.addEventListener("click",()=>{skAmt.value=c.dataset.a;}));
+        $(".fire", el).addEventListener("click", async ()=>{
+          const a = Math.abs(+skAmt.value||0);
+          await launchSkill(sk.id, side, a);
+          buzz([40,30,80]); toast(`${sk.tag} déclenché !`);
+        });
+      });
+
+      // animation libre
+      $("#freeFire").addEventListener("click",()=>{
+        const txt = ($("#freeText").value||"").trim();
+        if(!txt) return;
+        fireEvent({ anim:"alert", title:txt, sub:"" });
+        buzz(50); toast("FLASH envoyé");
+      });
+
+      // reset
+      $("#reset").addEventListener("click",()=>{
+        if(confirm("Réinitialiser les parts à 50 / 50 et les noms par défaut ?")){
+          resetState(); buzz(60); toast("RÉINITIALISÉ");
+        }
+      });
+    }
+  </script>
+</body>
+</html>

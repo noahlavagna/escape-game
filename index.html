@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>// GUERRE DES PARTS DE MARCHÉ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Black+Ops+One&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  .board{position:fixed;inset:0;display:flex;flex-direction:column;padding:34px 30px 26px;}
+
+  header.bar{display:flex;align-items:center;justify-content:space-between;
+    font-size:clamp(13px,1.5vw,20px);letter-spacing:.18em;color:var(--amber);
+    border-bottom:1px solid var(--line);padding-bottom:12px;}
+  header.bar .rec{display:flex;align-items:center;gap:10px;color:var(--red);}
+  header.bar .dot{width:13px;height:13px;border-radius:50%;background:var(--red);
+    box-shadow:0 0 14px var(--red);}
+  header.bar .title{font-family:var(--heavy);letter-spacing:.05em;color:var(--ink);
+    font-size:clamp(15px,1.7vw,24px);}
+  #clock{color:var(--ink);}
+
+  .arena{flex:1;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+    gap:clamp(16px,3vw,60px);min-height:0;}
+
+  .team{display:flex;flex-direction:column;align-items:center;gap:18px;
+    padding:18px;position:relative;min-width:0;}
+  .team .tname{font-family:var(--heavy);font-size:clamp(22px,3.4vw,52px);
+    letter-spacing:.04em;text-align:center;line-height:1;text-shadow:0 0 24px var(--tc);
+    color:var(--ink);}
+  .team .label{font-size:clamp(11px,1.1vw,15px);letter-spacing:.34em;color:var(--muted);}
+  .pct{font-family:var(--display);line-height:.82;
+    font-size:clamp(96px,15vw,240px);color:var(--tc);
+    text-shadow:0 0 40px var(--tc),0 6px 0 rgba(0,0,0,.6);}
+  .pct .u{font-size:.42em;opacity:.7;margin-left:.04em;}
+  .gauge{width:min(34vw,440px);max-width:100%;height:26px;background:#1c100a;
+    border:1px solid var(--line);position:relative;overflow:hidden;}
+  .gauge .fill{position:absolute;inset:0 auto 0 0;width:0;background:
+    linear-gradient(90deg,var(--tc),#fff6);transition:width .6s cubic-bezier(.2,.8,.2,1);
+    box-shadow:0 0 24px var(--tc);}
+  .gauge .fill::after{content:"";position:absolute;inset:0;
+    background:repeating-linear-gradient(90deg,rgba(0,0,0,.25) 0 6px,transparent 6px 12px);}
+  .lead{align-self:center;font-family:var(--mono);font-size:clamp(10px,.9vw,13px);
+    letter-spacing:.3em;color:#0a0705;background:var(--tc);padding:3px 10px;opacity:0;
+    transition:opacity .3s;box-shadow:0 0 18px var(--tc);}
+  .team.is-lead .lead{opacity:1;}
+
+  .vs{display:flex;flex-direction:column;align-items:center;gap:18px;}
+  .vs .v{font-family:var(--heavy);font-size:clamp(30px,4vw,64px);color:var(--toxic);
+    text-shadow:0 0 30px var(--toxic-deep);}
+  .tug{width:14px;height:min(42vh,420px);background:#150b06;border:1px solid var(--line);
+    position:relative;overflow:hidden;}
+  .tug .a{position:absolute;inset:auto 0 0 0;background:var(--ca);
+    box-shadow:0 0 22px var(--ca);transition:height .6s cubic-bezier(.2,.8,.2,1);}
+  .tug .mid{position:absolute;left:-7px;right:-7px;height:2px;background:#fff;opacity:.35;}
+
+  footer.ticker{border-top:1px solid var(--line);padding-top:10px;overflow:hidden;
+    white-space:nowrap;color:var(--muted);font-size:clamp(11px,1.1vw,15px);letter-spacing:.22em;}
+  footer.ticker span{display:inline-block;padding-left:100%;animation:scrollx 26s linear infinite;}
+  @keyframes scrollx{to{transform:translateX(-100%)}}
+
+  /* ---- overlay d'animation de compétence ---- */
+  #skill{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;
+    flex-direction:column;gap:clamp(8px,1.8vh,22px);text-align:center;padding:3vh 5vw;
+    background:rgba(5,8,3,.94);overflow:hidden;}
+  #skill.show{display:flex;animation:skillIn .4s ease-out;}
+  #skill.steal{background:radial-gradient(80% 80% at 50% 50%,rgba(29,59,8,.94),rgba(5,8,3,.97));}
+  @keyframes skillIn{from{opacity:0;transform:scale(1.15)}to{opacity:1;transform:scale(1)}}
+  .shake{animation:shake .5s cubic-bezier(.36,.07,.19,.97) both;}
+  @keyframes shake{10%,90%{transform:translate(-2px,0)}20%,80%{transform:translate(5px,0)}
+    30%,50%,70%{transform:translate(-9px,0)}40%,60%{transform:translate(9px,0)}}
+  #skill .sicon{font-size:clamp(46px,9vmin,120px);filter:drop-shadow(0 0 30px var(--toxic));
+    animation:pulse 1s ease-in-out infinite;line-height:1;}
+  @keyframes pulse{50%{transform:scale(1.12)}}
+  #skill .stitle{font-family:var(--heavy);font-size:clamp(30px,6vw,96px);line-height:.95;
+    letter-spacing:.03em;color:#eaffd2;text-shadow:0 0 40px var(--toxic);}
+  #skill .ssub{font-size:clamp(13px,1.8vw,24px);letter-spacing:.18em;color:var(--amber);max-width:30ch;}
+  #skill .seffect{font-family:var(--display);font-size:clamp(36px,7vmin,96px);letter-spacing:.04em;line-height:1;}
+  #skill .seffect .by{color:var(--ink);font-size:.42em;letter-spacing:.2em;display:block;
+    font-family:var(--mono);margin-bottom:.4em;}
+
+  /* ---- overlay de démarrage / config ---- */
+  #gate{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;
+    flex-direction:column;gap:22px;text-align:center;padding:6vw;background:rgba(6,3,1,.95);}
+  #gate h1{font-family:var(--heavy);font-size:clamp(26px,5vw,60px);color:var(--toxic);margin:0;
+    letter-spacing:.04em;text-shadow:0 0 30px var(--toxic-deep);}
+  #gate p{max-width:60ch;color:var(--muted);letter-spacing:.06em;line-height:1.6;font-size:clamp(13px,1.4vw,18px);}
+  #gate .go{font-family:var(--heavy);font-size:clamp(16px,2vw,24px);letter-spacing:.14em;
+    color:#0a0705;background:var(--amber);border:none;padding:18px 44px;cursor:pointer;
+    box-shadow:0 0 30px rgba(255,174,0,.5);}
+  #gate .go:active{transform:scale(.97);}
+  #qr{background:#fff;padding:14px;border-radius:6px;}
+  #qr img,#qr canvas{display:block;}
+  #gate .qrcap{color:var(--amber);letter-spacing:.2em;font-size:13px;}
+  #gate code{color:var(--amber);background:#1a0e07;padding:2px 7px;}
+  .hide{display:none!important;}
+</style>
+</head>
+<body>
+  <div class="warn-strip top"></div>
+  <div class="warn-strip bot"></div>
+  <div class="biohazard">☣</div>
+
+  <div class="board">
+    <header class="bar">
+      <div class="rec"><span class="dot blink"></span> ZONE DE QUARANTAINE · DIRECT</div>
+      <div class="title glitch" data-text="GUERRE DES PARTS DE MARCHÉ">GUERRE DES PARTS DE MARCHÉ</div>
+      <div id="clock">--:--:--</div>
+    </header>
+
+    <main class="arena">
+      <section class="team" id="teamA">
+        <div class="lead">▼ DOMINANT</div>
+        <div class="label">PART DE MARCHÉ</div>
+        <div class="tname">SOUCHE A</div>
+        <div class="pct"><span class="num">50</span><span class="u">%</span></div>
+        <div class="gauge"><div class="fill"></div></div>
+      </section>
+
+      <section class="vs">
+        <div class="v glitch" data-text="VS">VS</div>
+        <div class="tug"><div class="a"></div><div class="mid"></div></div>
+      </section>
+
+      <section class="team" id="teamB">
+        <div class="lead">▼ DOMINANT</div>
+        <div class="label">PART DE MARCHÉ</div>
+        <div class="tname">SOUCHE B</div>
+        <div class="pct"><span class="num">50</span><span class="u">%</span></div>
+        <div class="gauge"><div class="fill"></div></div>
+      </section>
+    </main>
+
+    <footer class="ticker"><span id="tick">CONTAMINATION DU MARCHÉ EN COURS · PROTOCOLE DE QUARANTAINE ACTIF · TOUTE PRISE DE PARTS EST IRRÉVERSIBLE · SOUCHES SOUS SURVEILLANCE ···</span></footer>
+  </div>
+
+  <!-- animation compétence -->
+  <div id="skill">
+    <div class="sicon">☣</div>
+    <div class="stitle">VOL DE PARTS DE MARCHÉ</div>
+    <div class="ssub"></div>
+    <div class="seffect"></div>
+  </div>
+
+  <!-- porte d'entrée : config + QR + activation son/plein écran -->
+  <div id="gate">
+    <h1>// POSTE DE CONTRÔLE — ZONE INFECTÉE</h1>
+    <p id="gateMsg">Active le son et le plein écran, puis scanne le QR avec ton téléphone pour ouvrir la télécommande.</p>
+    <div id="qr"></div>
+    <div class="qrcap" id="qrcap"></div>
+    <button class="go" id="goBtn">☣ ARMER LE TABLEAU ▸</button>
+  </div>
+
+  <div class="fx fog"></div>
+  <div class="fx scan"></div>
+  <div class="fx flicker"></div>
+  <div class="fx vignette"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script type="module">
+    import { configReady, ROOM, ensureState, subscribeState, subscribeEvent, getSkill } from "./firebase.js";
+
+    const $ = (s, r=document) => r.querySelector(s);
+
+    /* ---- horloge ---- */
+    const clock = $("#clock");
+    setInterval(() => {
+      clock.textContent = new Date().toLocaleTimeString("fr-FR");
+    }, 1000);
+
+    /* ---- garde-fou config ---- */
+    const gate = $("#gate"), gateMsg = $("#gateMsg"), goBtn = $("#goBtn");
+    // Le clic est attaché tout de suite : aucune autre étape ne doit pouvoir
+    // empêcher l'armement (le QR ci-dessous est un bonus, jamais bloquant).
+    goBtn.addEventListener("click", arm);
+
+    if (!configReady) {
+      gateMsg.innerHTML = "⚠ Firebase non configuré. Ouvre <code>escape/firebase-config.js</code> et colle ta config Firebase, puis recharge.";
+      goBtn.classList.add("hide");
+    } else {
+      // QR vers la télécommande (optionnel : si la lib QR n'a pas chargé, on
+      // affiche juste l'URL en clair, sans casser le reste).
+      try {
+        const remoteUrl = new URL("pilote.html", location.href);
+        if (ROOM !== "main") remoteUrl.searchParams.set("room", ROOM);
+        $("#qrcap").textContent = remoteUrl.href.replace(/^https?:\/\//, "");
+        if (typeof QRCode !== "undefined") {
+          new QRCode($("#qr"), { text: remoteUrl.href, width: 190, height: 190,
+            colorDark: "#0a0705", colorLight: "#ffffff" });
+        } else {
+          $("#qr").remove();
+        }
+      } catch (e) { console.warn("QR indisponible", e); }
+    }
+
+    /* ---- audio (alarme synthétisée, pas de fichier) ---- */
+    let actx = null;
+    function beep(freq, dur, type="square", gain=0.18, delay=0){
+      if(!actx) return;
+      const o=actx.createOscillator(), g=actx.createGain();
+      o.type=type; o.frequency.value=freq; o.connect(g); g.connect(actx.destination);
+      const t=actx.currentTime+delay;
+      g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(gain,t+0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+      o.start(t); o.stop(t+dur+0.02);
+    }
+    function alarm(){
+      // sirène descendante + bips
+      beep(880,.18,"sawtooth",.2,0); beep(620,.18,"sawtooth",.2,.16);
+      beep(440,.3,"sawtooth",.2,.32); beep(1200,.08,"square",.12,.5);
+    }
+
+    /* ---- armement (geste utilisateur => autoplay + plein écran + wake lock) ----
+       Tout est best-effort et NON bloquant : quoi qu'il arrive (audio refusé,
+       plein écran indispo, etc.), le tableau s'arme et démarre. */
+    let wakeLock = null;
+    function arm(){
+      try {
+        actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+        if (actx.state === "suspended") actx.resume();
+      } catch(e){}
+      try { document.documentElement.requestFullscreen?.()?.catch(()=>{}); } catch(e){}
+      try { navigator.wakeLock?.request("screen").then(w => wakeLock = w).catch(()=>{}); } catch(e){}
+      gate.classList.add("hide");
+      if (configReady) { ensureState(); start(); }
+    }
+    document.addEventListener("visibilitychange", async () => {
+      if (document.visibilityState === "visible" && !wakeLock)
+        try { wakeLock = await navigator.wakeLock?.request("screen"); } catch(e){}
+    });
+
+    /* ---- rendu de l'état ---- */
+    let started = false;
+    function start(){
+      if (started) return; started = true;
+
+      subscribeState((st) => {
+        renderTeam("A", st.teamA);
+        renderTeam("B", st.teamB);
+        const a = st.teamA.share, b = st.teamB.share;
+        // jauge "bras de fer" : part de A sur le total
+        const ratio = (a + b) > 0 ? (a / (a + b)) * 100 : 50;
+        $(".tug .a").style.height = ratio + "%";
+        document.documentElement.style.setProperty("--ca", st.teamA.color);
+        // surligne le dominant
+        $("#teamA").classList.toggle("is-lead", a > b);
+        $("#teamB").classList.toggle("is-lead", b > a);
+      });
+
+      // événements / animations de compétence
+      let lastId = null;
+      subscribeEvent((ev) => {
+        if (!ev || !ev.id) return;
+        if (lastId === null) { lastId = ev.id; return; } // pas de rejeu au démarrage
+        if (ev.id === lastId) return;
+        lastId = ev.id;
+        playSkill(ev);
+      });
+    }
+
+    function renderTeam(side, t){
+      const el = $("#team"+side);
+      el.style.setProperty("--tc", t.color);
+      $(".tname", el).textContent = t.name;
+      $(".num", el).textContent = t.share;
+      $(".gauge .fill", el).style.width = t.share + "%";
+    }
+
+    /* ---- animation compétence ---- */
+    const skill = $("#skill");
+    let skillTimer = null;
+    function playSkill(ev){
+      clearTimeout(skillTimer);
+      skill.className = ""; void skill.offsetWidth; // reset
+      skill.classList.add("show", ev.anim || "alert", "shake");
+      $(".stitle", skill).textContent = ev.title || "COMPÉTENCE";
+      $(".ssub", skill).textContent = ev.sub || "";
+      $(".sicon", skill).textContent = ev.anim === "steal" ? "☣" : "⚠";
+      const eff = $(".seffect", skill);
+      if (ev.amount != null && ev.team){
+        eff.innerHTML = `<span class="by">PARTS CONTAMINÉES</span>+${ev.amount}<span style="font-size:.5em">%</span>`;
+      } else { eff.textContent = ""; }
+      alarm();
+      skillTimer = setTimeout(() => skill.classList.remove("show"), 6000);
+    }
+
+    // si la config est déjà prête et qu'on a déjà armé (rechargement), démarre direct
+    // (sinon on attend le clic pour l'audio/plein écran)
+  </script>
+</body>
+</html>
