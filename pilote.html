@@ -107,6 +107,17 @@
   .err{background:#2a0d09;border:1px solid var(--red);color:#ffb4ad;padding:16px;
     line-height:1.6;letter-spacing:.04em;}
   .err code{background:#1a0e07;color:var(--amber);padding:2px 6px;}
+
+  .alarm-btn{width:100%;padding:22px 0;font-family:var(--heavy);font-size:22px;
+    letter-spacing:.1em;background:#2a0d09;border:2px solid var(--red);color:var(--red);
+    box-shadow:0 0 24px rgba(255,59,48,.3);}
+  .alarm-btn.alarm-on{background:var(--red);color:#0a0705;
+    animation:alarmPulse .85s ease-in-out infinite;
+    box-shadow:0 0 40px rgba(255,59,48,.8);}
+  @keyframes alarmPulse{
+    0%,100%{transform:scale(1);box-shadow:0 0 24px rgba(255,59,48,.8);}
+    50%{transform:scale(1.02);box-shadow:0 0 56px rgba(255,59,48,1);}
+  }
 </style>
 </head>
 <body>
@@ -176,6 +187,10 @@
       <!-- ÉVÉNEMENTS (Game Master) -->
       <div class="section-title">ÉVÉNEMENTS · GAME MASTER</div>
       <div class="events" id="events"></div>
+
+      <!-- ALARME -->
+      <div class="section-title">ALARME</div>
+      <button class="alarm-btn" id="btnAlarm">🔔 ALARME</button>
 
       <!-- ANIMATION LIBRE -->
       <div class="section-title">ANIMATION LIBRE (texte au tableau)</div>
@@ -368,6 +383,49 @@
         if(!txt) return;
         fireEvent({ anim:"alert", title:txt, sub:"" });
         buzz(50); toast("FLASH envoyé");
+      });
+
+      // alarme locale
+      let alarmCtx = null, alarmActive = false, alarmNext = null, alarmVib = null;
+      const btnAlarm = $("#btnAlarm");
+
+      function alarmCycle() {
+        if (!alarmActive || !alarmCtx) return;
+        const ctx = alarmCtx, t = ctx.currentTime;
+        [[880, 0], [660, 0.38]].forEach(([freq, delay]) => {
+          const osc = ctx.createOscillator(), g = ctx.createGain();
+          osc.type = "sawtooth"; osc.frequency.value = freq;
+          g.gain.setValueAtTime(0, t + delay);
+          g.gain.linearRampToValueAtTime(0.28, t + delay + 0.01);
+          g.gain.setValueAtTime(0.28, t + delay + 0.27);
+          g.gain.linearRampToValueAtTime(0, t + delay + 0.35);
+          osc.connect(g); g.connect(ctx.destination);
+          osc.start(t + delay); osc.stop(t + delay + 0.36);
+        });
+        alarmNext = setTimeout(alarmCycle, 840);
+      }
+
+      function vibLoop() {
+        if (!alarmActive) return;
+        navigator.vibrate?.([300, 200, 300, 200]);
+        alarmVib = setTimeout(vibLoop, 1000);
+      }
+
+      btnAlarm.addEventListener("click", () => {
+        if (!alarmActive) {
+          alarmCtx = new AudioContext();
+          alarmActive = true;
+          alarmCycle(); vibLoop();
+          btnAlarm.textContent = "⛔ ARRÊTER L'ALARME";
+          btnAlarm.classList.add("alarm-on");
+        } else {
+          alarmActive = false;
+          clearTimeout(alarmNext); clearTimeout(alarmVib);
+          navigator.vibrate?.(0);
+          alarmCtx.close(); alarmCtx = null;
+          btnAlarm.textContent = "🔔 ALARME";
+          btnAlarm.classList.remove("alarm-on");
+        }
       });
 
       // reset
