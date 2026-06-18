@@ -45,6 +45,20 @@ export const ROOM = "main";
 export const TEASER_YT_ID = "OTPyI3znRxg";
 
 // =====================================================================
+//  VOIX (ex : Morgan Freeman) — jouée par le TABLEAU quand une équipe
+//  GAGNE des parts de marché.
+// =====================================================================
+//  Dépose tes fichiers audio (mp3 / wav / m4a) dans le dossier escape/,
+//  puis indique leur nom de fichier ci-dessous, un par équipe.
+//  Laisse "" tant que tu n'as pas les fichiers : seul le bruitage jouera.
+//    A = voix quand la SOUCHE A (équipe de gauche) gagne
+//    B = voix quand la SOUCHE B (équipe de droite) gagne
+export const VOICE_GAIN = {
+  A: "",   // ex : "voix-equipe-a.mp3"
+  B: ""    // ex : "voix-equipe-b.mp3"
+};
+
+// =====================================================================
 //  Pour verrouiller la base après l'événement (optionnel) :
 //  Realtime Database -> Règles -> remplace par {"rules":{".read":false,".write":false}}
 //  La clé apiKey ci-dessus n'est PAS secrète (c'est normal côté web).

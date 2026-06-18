@@ -46,6 +46,19 @@
     transition:opacity .3s;box-shadow:0 0 18px var(--tc);}
   .team.is-lead .lead{opacity:1;}
 
+  /* ---- animation "+N% / -N%" lors d'un gain / perte de parts ---- */
+  .deltafx{position:absolute;top:26%;left:50%;pointer-events:none;z-index:8;
+    font-family:var(--display);font-size:clamp(48px,8vw,130px);line-height:1;
+    will-change:transform,opacity;animation:floatup 1.5s cubic-bezier(.2,.8,.2,1) forwards;}
+  .deltafx.up{color:var(--toxic);text-shadow:0 0 36px var(--toxic),0 0 12px #fff;}
+  .deltafx.down{color:var(--red);text-shadow:0 0 36px var(--red);}
+  @keyframes floatup{
+    0%{opacity:0;transform:translate(-50%,30px) scale(.4);}
+    18%{opacity:1;transform:translate(-50%,0) scale(1.2);}
+    40%{transform:translate(-50%,-12px) scale(1);}
+    100%{opacity:0;transform:translate(-50%,-120px) scale(.95);}
+  }
+
   /* ---- confinement (verrou + compte à rebours) ---- */
   .lockbox{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;
     justify-content:center;gap:8px;background:rgba(45,2,2,.8);border:2px solid var(--red);
@@ -262,7 +275,7 @@
              subscribeScene, setScene, getSkill, serverNow,
              subscribeFirstWinner, clearFirstWinner, lockTeam, resetState, clearEvent,
              subscribeAlarm, setAlarm } from "./firebase.js";
-    import { TEASER_YT_ID } from "./firebase-config.js";
+    import { TEASER_YT_ID, VOICE_GAIN } from "./firebase-config.js";
 
     const $ = (s, r=document) => r.querySelector(s);
 
@@ -344,6 +357,34 @@
       } else {
         boardAlarm.pause();
       }
+    }
+
+    /* ---- gain / perte de parts : bruitage + voix + animation "+N%" ---- */
+    function gainSound(){
+      // petit arpège ascendant "power-up"
+      beep(523,.12,"triangle",.22,0);
+      beep(784,.12,"triangle",.22,.10);
+      beep(1047,.20,"triangle",.26,.20);
+    }
+    function lossSound(){
+      beep(330,.14,"sine",.16,0);
+      beep(247,.22,"sine",.16,.12);
+    }
+    // voix (Morgan Freeman) : un fichier par équipe, configuré dans firebase-config.js
+    const voiceEls = { A:null, B:null };
+    function playVoice(side){
+      const p = VOICE_GAIN && VOICE_GAIN[side];
+      if(!p) return;                       // pas de fichier => seul le bruitage joue
+      if(!voiceEls[side]) voiceEls[side] = new Audio(p);
+      try { voiceEls[side].currentTime = 0; voiceEls[side].play().catch(()=>{}); } catch(e){}
+    }
+    function floatDelta(side, delta){
+      const host = $("#team"+side);
+      const el = document.createElement("div");
+      el.className = "deltafx " + (delta>0 ? "up" : "down");
+      el.textContent = (delta>0 ? "+" : "") + delta + "%";
+      host.appendChild(el);
+      setTimeout(() => el.remove(), 1550);
     }
 
     /* ===== SCÈNES + vidéo teaser ===== */
@@ -444,6 +485,7 @@
     /* ---- rendu de l'état ---- */
     let started = false;
     const lockUntil = { A: 0, B: 0 };
+    const prevShare = { A: null, B: null };  // pour détecter les gains / pertes
     function start(){
       if (started) return; started = true;
 
@@ -468,6 +510,19 @@
       });
 
       subscribeState((st) => {
+        // détecte les gains / pertes de parts pour l'animation + le son + la voix
+        ["A","B"].forEach((side) => {
+          const cur = (side === "A" ? st.teamA : st.teamB).share;
+          const prev = prevShare[side];
+          if (prev != null && cur !== prev) {
+            const d = cur - prev;
+            floatDelta(side, d);
+            if (d > 0) { gainSound(); playVoice(side); }
+            else { lossSound(); }
+          }
+          prevShare[side] = cur;
+        });
+
         renderTeam("A", st.teamA);
         renderTeam("B", st.teamB);
         teamNames.A = st.teamA.name;
