@@ -68,6 +68,14 @@ export const VOICES = {
 };
 
 // =====================================================================
+//  MUSIQUE DE FOND — démarre après « PARTEZ », tourne en boucle, et
+//  baisse automatiquement quand une voix / un événement joue (ducking).
+// =====================================================================
+export const MUSIC = "musique/ambiance.mp3";
+export const MUSIC_VOLUME = 0.55;   // volume normal (0 à 1)
+export const MUSIC_DUCK   = 0.12;   // volume baissé pendant les voix
+
+// =====================================================================
 //  Pour verrouiller la base après l'événement (optionnel) :
 //  Realtime Database -> Règles -> remplace par {"rules":{".read":false,".write":false}}
 //  La clé apiKey ci-dessus n'est PAS secrète (c'est normal côté web).

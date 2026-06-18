@@ -133,6 +133,23 @@ export function subscribeAlarm(cb) {
   onValue(ref(db, alarmPath), (snap) => cb(Boolean(snap.val())));
 }
 
+// Musique de fond : la télécommande envoie une commande ("play"/"pause"/
+// "restart"), le TABLEAU (PC) l'applique. Le compteur n force le rejeu même
+// si on renvoie deux fois la même commande.
+const musicPath = `rooms/${ROOM}/music`;
+export function setMusicCmd(cmd) {
+  if (!db) return Promise.resolve();
+  return set(ref(db, musicPath), { cmd, n: Date.now() });
+}
+export function subscribeMusic(cb) {
+  if (!db) return;
+  onValue(ref(db, musicPath), (snap) => { const v = snap.val(); if (v) cb(v); });
+}
+export function clearMusic() {
+  if (!db) return Promise.resolve();
+  return set(ref(db, musicPath), null);
+}
+
 export function subscribeScene(cb) {
   if (!db) return;
   onValue(ref(db, scenePath), (snap) => cb(snap.val() || "teaser"));

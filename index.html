@@ -254,6 +254,9 @@
   <!-- alarme jouée par le tableau (PC) ; déclenchée depuis le téléphone -->
   <audio id="boardAlarm" loop playsinline></audio>
 
+  <!-- musique de fond en boucle (démarre après « PARTEZ ») -->
+  <audio id="bgMusic" loop playsinline></audio>
+
   <!-- porte d'entrée : config + QR + activation son/plein écran -->
   <div id="gate">
     <h1>// POSTE DE CONTRÔLE — ZONE INFECTÉE</h1>
@@ -274,8 +277,8 @@
     import { configReady, ROOM, ensureState, ensureScene, subscribeState, subscribeEvent,
              subscribeScene, setScene, getSkill, serverNow,
              subscribeFirstWinner, clearFirstWinner, lockTeam, resetState, clearEvent,
-             subscribeAlarm, setAlarm } from "./firebase.js";
-    import { TEASER_YT_ID, VOICES } from "./firebase-config.js";
+             subscribeAlarm, setAlarm, subscribeMusic, clearMusic } from "./firebase.js";
+    import { TEASER_YT_ID, VOICES, MUSIC, MUSIC_VOLUME, MUSIC_DUCK } from "./firebase-config.js";
 
     const $ = (s, r=document) => r.querySelector(s);
 
@@ -360,6 +363,24 @@
       }
     }
 
+    /* ---- musique de fond + ducking (baisse quand une voix joue) ---- */
+    const bgMusic = $("#bgMusic");
+    let musicStarted = false, musicDucked = false;
+    function applyMusicVol(){ bgMusic.volume = musicDucked ? MUSIC_DUCK : MUSIC_VOLUME; }
+    function duckMusic(){ musicDucked = true; applyMusicVol(); }
+    function unduckMusic(){ musicDucked = false; applyMusicVol(); }
+    function startMusic(){
+      if (musicStarted) return; musicStarted = true;
+      if (!bgMusic.src) bgMusic.src = MUSIC;
+      applyMusicVol();
+      bgMusic.play().catch(()=>{});
+    }
+    function musicCommand(cmd){
+      if (cmd === "pause") { bgMusic.pause(); }
+      else if (cmd === "restart") { try { bgMusic.currentTime = 0; } catch(e){} musicStarted = true; if(!bgMusic.src) bgMusic.src = MUSIC; applyMusicVol(); bgMusic.play().catch(()=>{}); }
+      else if (cmd === "play") { musicStarted = true; if(!bgMusic.src) bgMusic.src = MUSIC; applyMusicVol(); bgMusic.play().catch(()=>{}); }
+    }
+
     /* ---- gain / perte de parts : bruitage + voix + animation "+N%" ---- */
     function gainSound(){
       // petit arpège ascendant "power-up"
@@ -380,17 +401,21 @@
       if(!voiceAudio.paused && voiceAudio.dataset.src === src) return;
       try {
         voiceAudio.onended = null;
+        duckMusic();                         // baisse la musique pendant la voix
+        const done = () => { voiceAudio.onended = null; unduckMusic(); };
         voiceAudio.dataset.src = src;
         voiceAudio.src = src; voiceAudio.currentTime = 0;
         voiceAudio.play().catch(()=>{});
         if(opts.then){                       // enchaîne un 2e fichier à la fin
           voiceAudio.onended = () => {
-            voiceAudio.onended = null;
+            voiceAudio.onended = done;
             voiceAudio.dataset.src = opts.then;
             voiceAudio.src = opts.then; voiceAudio.play().catch(()=>{});
           };
+        } else {
+          voiceAudio.onended = done;
         }
-      } catch(e){}
+      } catch(e){ unduckMusic(); }
     }
     function floatDelta(side, delta){
       const host = $("#team"+side);
@@ -437,6 +462,8 @@
       if (name === "teaser") playTeaser(); else stopTeaser();
       if (name === "go") runGo();
       else { goTimers.forEach(clearTimeout); goTimers = []; goRunning = false; }
+      // la musique de fond démarre quand le tableau s'ouvre (après « PARTEZ »)
+      if (name === "board") startMusic();
       // Avantage de départ : quand le tableau s'ouvre, on confine le perdant 30s
       if (name === "board" && pendingFirstWinner) {
         const loser = pendingFirstWinner === "A" ? "B" : "A";
@@ -486,7 +513,7 @@
         // on remet les parts à 0, on efface le confinement / le vainqueur de la
         // 1ère question, et on repart sur le teaser.
         (async () => {
-          await clearEvent();
+          await clearEvent(); await clearMusic();
           resetState(); clearFirstWinner(); setAlarm(false); setScene("teaser");
           start();
         })();
@@ -509,6 +536,15 @@
 
       // alarme déclenchée depuis le téléphone -> son joué ici (PC)
       subscribeAlarm((on) => setBoardAlarm(on));
+
+      // commandes musique depuis le téléphone (pause / début / lecture).
+      // le nœud a été vidé à l'armement => la 1ère commande envoyée s'applique.
+      let lastMusicN = null;
+      subscribeMusic((m) => {
+        if (m.n === lastMusicN) return;
+        lastMusicN = m.n;
+        musicCommand(m.cmd);
+      });
 
       // avantage de départ : suit le vainqueur de la 1ère question
       let lastWinner = null;

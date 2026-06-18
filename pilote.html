@@ -92,6 +92,11 @@
   .events button .eic{font-size:24px;line-height:1;}
   .events button .etag{font-size:12px;letter-spacing:.08em;color:var(--amber);font-family:var(--heavy);}
 
+  .music{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .music button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 6px;
+    background:#0b2a14;border:1px solid var(--line);color:#9bf3bd;font-size:22px;line-height:1;}
+  .music button span{font-size:11px;letter-spacing:.1em;font-family:var(--heavy);}
+
   .freeRow{display:flex;gap:8px;}
   .freeRow input{flex:1;background:#0d0704;border:1px solid var(--line);color:var(--ink);
     font-family:var(--mono);padding:12px;font-size:14px;}
@@ -208,6 +213,14 @@
       <div class="section-title">ALARME</div>
       <button class="alarm-btn" id="btnAlarm">🔔 ALARME</button>
 
+      <!-- MUSIQUE DE FOND -->
+      <div class="section-title">MUSIQUE DE FOND</div>
+      <div class="music">
+        <button id="musPause">⏸<span>PAUSE</span></button>
+        <button id="musRestart">⏮<span>DÉBUT</span></button>
+        <button id="musPlay">▶<span>LECTURE</span></button>
+      </div>
+
       <!-- ANIMATION LIBRE -->
       <div class="section-title">ANIMATION LIBRE (texte au tableau)</div>
       <div class="freeRow">
@@ -232,7 +245,7 @@
       configReady, ROOM, ensureState, ensureScene, subscribeState, subscribeConnection,
       subscribeScene, setScene, addShare, transfer, setName, resetState, launchSkill, fireEvent,
       launchEvent, EVENTS, SKILLS, other, serverNow, setFirstWinner, clearFirstWinner,
-      setAlarm, subscribeAlarm
+      setAlarm, subscribeAlarm, setMusicCmd
     } from "./firebase.js";
 
     const $ = (s, r=document) => r.querySelector(s);
@@ -433,6 +446,11 @@
         buzz(40);
         toast(alarmActive ? "Alarme coupée" : "🔔 ALARME — au tableau");
       });
+
+      // musique de fond (jouée par le tableau)
+      $("#musPause").addEventListener("click",  () => { setMusicCmd("pause");   buzz(30); toast("⏸ Musique en pause"); });
+      $("#musRestart").addEventListener("click",() => { setMusicCmd("restart"); buzz(30); toast("⏮ Musique au début"); });
+      $("#musPlay").addEventListener("click",   () => { setMusicCmd("play");    buzz(30); toast("▶ Musique relancée"); });
 
       // reset
       $("#reset").addEventListener("click",()=>{
