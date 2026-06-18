@@ -123,6 +123,45 @@
   #gate .qrcap{color:var(--amber);letter-spacing:.2em;font-size:13px;}
   #gate code{color:var(--amber);background:#1a0e07;padding:2px 7px;}
   .hide{display:none!important;}
+
+  /* ===== SCÈNES (transitions fluides) ===== */
+  .scene{position:fixed;inset:0;z-index:10;opacity:0;visibility:hidden;pointer-events:none;
+    transform:scale(1.04);transition:opacity .6s ease, transform .8s cubic-bezier(.2,.8,.2,1);}
+  .scene.active{opacity:1;visibility:visible;pointer-events:auto;transform:none;}
+
+  /* --- scènes intro (insta / teaser) --- */
+  .intro{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:clamp(14px,2.4vh,30px);text-align:center;padding:4vh 6vw;}
+  .kicker{font-family:var(--mono);letter-spacing:.4em;color:var(--amber);
+    font-size:clamp(12px,1.4vw,18px);}
+  .introTitle{font-family:var(--heavy);font-size:clamp(40px,8vw,120px);line-height:.92;
+    letter-spacing:.03em;color:var(--ink);text-shadow:0 0 40px var(--toxic-deep);margin:0;}
+  .introSub{color:var(--muted);letter-spacing:.16em;font-size:clamp(14px,1.8vw,22px);max-width:34ch;}
+  .qrwrap{background:#fff;padding:clamp(12px,1.6vw,22px);border-radius:8px;
+    box-shadow:0 0 60px rgba(155,255,59,.35);animation:qrpulse 2.4s ease-in-out infinite;}
+  .qrwrap canvas,.qrwrap img{display:block;width:clamp(180px,26vmin,320px);height:auto;}
+  @keyframes qrpulse{50%{box-shadow:0 0 90px rgba(155,255,59,.6)}}
+  .introUrl{font-family:var(--mono);color:var(--toxic);letter-spacing:.14em;font-size:clamp(13px,1.5vw,20px);}
+
+  /* --- scène teaser (vidéo) --- */
+  #sceneTeaser{background:#000;}
+  .videoFrame{position:relative;width:min(90vw,calc(82vh * 16 / 9));aspect-ratio:16/9;
+    border:2px solid var(--line);box-shadow:0 0 80px rgba(155,255,59,.25);background:#000;}
+  .videoFrame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+
+  /* --- scène "à vos marques" --- */
+  #sceneGo{display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(60% 60% at 50% 50%,rgba(29,59,8,.6),rgba(5,8,3,.96));}
+  .goText{font-family:var(--heavy);font-size:clamp(50px,11vw,180px);line-height:.9;
+    letter-spacing:.02em;color:var(--ink);text-shadow:0 0 50px var(--toxic);text-align:center;
+    opacity:0;}
+  .goText.pop{animation:gopop .85s cubic-bezier(.2,.9,.2,1);}
+  @keyframes gopop{0%{opacity:0;transform:scale(.4);filter:blur(8px)}
+    35%{opacity:1;transform:scale(1.08);filter:blur(0)}
+    80%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.25)}}
+  .goText.partez{color:var(--toxic);animation:gopartez 1.2s cubic-bezier(.2,.9,.2,1) forwards;}
+  @keyframes gopartez{0%{opacity:0;transform:scale(.4)}30%{opacity:1;transform:scale(1.15)}
+    100%{opacity:1;transform:scale(1)}}
 </style>
 </head>
 <body>
@@ -130,7 +169,28 @@
   <div class="warn-strip bot"></div>
   <div class="biohazard">☣</div>
 
-  <div class="board">
+  <!-- SCÈNE : Instagram -->
+  <section class="scene intro" id="sceneInsta">
+    <div class="kicker">// AVANT DE COMMENCER</div>
+    <h1 class="introTitle glitch" data-text="SUIVEZ-NOUS">SUIVEZ-NOUS</h1>
+    <p class="introSub">Scannez pour rejoindre l'épidémie sur Instagram</p>
+    <div class="qrwrap"><div id="instaQr"></div></div>
+    <div class="introUrl" id="instaUrl"></div>
+  </section>
+
+  <!-- SCÈNE : Teaser vidéo -->
+  <section class="scene intro" id="sceneTeaser">
+    <div class="kicker">// TRANSMISSION INTERCEPTÉE</div>
+    <div class="videoFrame"><div id="ytplayer"></div></div>
+  </section>
+
+  <!-- SCÈNE : À vos marques -->
+  <section class="scene" id="sceneGo">
+    <div class="goText" id="goText">À VOS MARQUES</div>
+  </section>
+
+  <!-- SCÈNE : Tableau des scores -->
+  <div class="board scene" id="sceneBoard">
     <header class="bar">
       <div class="rec"><span class="dot blink"></span> ZONE DE QUARANTAINE · DIRECT</div>
       <div class="title glitch" data-text="GUERRE DES PARTS DE MARCHÉ">GUERRE DES PARTS DE MARCHÉ</div>
@@ -188,8 +248,11 @@
   <div class="fx vignette"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
   <script type="module">
-    import { configReady, ROOM, ensureState, subscribeState, subscribeEvent, getSkill, serverNow } from "./firebase.js";
+    import { configReady, ROOM, ensureState, ensureScene, subscribeState, subscribeEvent,
+             subscribeScene, setScene, getSkill, serverNow } from "./firebase.js";
+    import { INSTA_URL, TEASER_YT_ID } from "./firebase-config.js";
 
     const $ = (s, r=document) => r.querySelector(s);
 
@@ -222,6 +285,15 @@
           $("#qr").remove();
         }
       } catch (e) { console.warn("QR indisponible", e); }
+
+      // QR vers Instagram (scène d'intro)
+      try {
+        $("#instaUrl").textContent = INSTA_URL.replace(/^https?:\/\//, "").replace(/\/$/, "");
+        if (typeof QRCode !== "undefined") {
+          new QRCode($("#instaQr"), { text: INSTA_URL, width: 300, height: 300,
+            colorDark: "#0a0705", colorLight: "#ffffff" });
+        }
+      } catch (e) { console.warn("QR Insta indisponible", e); }
     }
 
     /* ---- audio (alarme synthétisée, pas de fichier) ---- */
@@ -241,6 +313,63 @@
       beep(440,.3,"sawtooth",.2,.32); beep(1200,.08,"square",.12,.5);
     }
 
+    /* ===== SCÈNES + vidéo teaser ===== */
+    let ytPlayer = null, ytReady = false, wantTeaser = false;
+    function createPlayer(){
+      if (ytPlayer || typeof YT === "undefined" || !YT.Player) return;
+      ytPlayer = new YT.Player("ytplayer", {
+        videoId: TEASER_YT_ID,
+        playerVars: { controls:0, rel:0, modestbranding:1, playsinline:1, fs:0, iv_load_policy:3 },
+        events: { onReady: () => { ytReady = true; if (wantTeaser) playTeaser(); } }
+      });
+    }
+    window.onYouTubeIframeAPIReady = createPlayer;
+    if (typeof YT !== "undefined" && YT.Player) createPlayer();
+
+    function playTeaser(){
+      wantTeaser = true;
+      if (!ytReady || !ytPlayer) return;   // sera relancé par onReady
+      try {
+        ytPlayer.seekTo(0); ytPlayer.unMute(); ytPlayer.setVolume(100); ytPlayer.playVideo();
+        // filet anti-blocage autoplay : si pas lancé sous 1 s, on relance en muet
+        setTimeout(() => {
+          try { if (wantTeaser && ytPlayer.getPlayerState() !== 1){ ytPlayer.mute(); ytPlayer.playVideo(); } } catch(e){}
+        }, 1000);
+      } catch(e){}
+    }
+    function stopTeaser(){ wantTeaser = false; try { ytPlayer && ytPlayer.pauseVideo(); } catch(e){} }
+
+    const SCENE_EL = { insta:"#sceneInsta", teaser:"#sceneTeaser", go:"#sceneGo", board:"#sceneBoard" };
+    let currentScene = null, goRunning = false, goTimers = [];
+    function showScene(name){
+      currentScene = name;
+      Object.entries(SCENE_EL).forEach(([s, sel]) => $(sel).classList.toggle("active", s === name));
+      if (name === "teaser") playTeaser(); else stopTeaser();
+      if (name === "go") runGo();
+      else { goTimers.forEach(clearTimeout); goTimers = []; goRunning = false; }
+    }
+
+    function runGo(){
+      if (goRunning) return; goRunning = true;
+      const el = $("#goText");
+      const steps = [
+        { t:"À VOS MARQUES", cls:"pop",    f:440 },
+        { t:"PRÊTS",         cls:"pop",    f:600 },
+        { t:"PARTEZ !",      cls:"partez", f:920 }
+      ];
+      goTimers = [];
+      steps.forEach((st, i) => goTimers.push(setTimeout(() => {
+        el.textContent = st.t; el.className = "goText"; void el.offsetWidth;
+        el.classList.add(st.cls);
+        try { beep(st.f, st.cls === "partez" ? .5 : .16, "square", .25); } catch(e){}
+      }, i * 1100)));
+      // après "PARTEZ !", bascule automatiquement vers le tableau des scores
+      goTimers.push(setTimeout(() => {
+        goRunning = false;
+        if (currentScene === "go") setScene("board");
+      }, steps.length * 1100 + 1300));
+    }
+
     /* ---- armement (geste utilisateur => autoplay + plein écran + wake lock) ----
        Tout est best-effort et NON bloquant : quoi qu'il arrive (audio refusé,
        plein écran indispo, etc.), le tableau s'arme et démarre. */
@@ -254,7 +383,7 @@
       try { navigator.wakeLock?.request("screen").then(w => wakeLock = w).catch(()=>{}); } catch(e){}
       document.body.classList.add("armed");   // masque le curseur
       gate.classList.add("hide");
-      if (configReady) { ensureState(); start(); }
+      if (configReady) { ensureState(); ensureScene(); start(); }
     }
     document.addEventListener("visibilitychange", async () => {
       if (document.visibilityState === "visible" && !wakeLock)
@@ -266,6 +395,9 @@
     const lockUntil = { A: 0, B: 0 };
     function start(){
       if (started) return; started = true;
+
+      // scènes pilotées depuis le téléphone
+      subscribeScene((name) => showScene(name));
 
       subscribeState((st) => {
         renderTeam("A", st.teamA);

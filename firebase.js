@@ -23,6 +23,7 @@ if (configReady) {
 
 const statePath = `rooms/${ROOM}/state`;
 const eventPath = `rooms/${ROOM}/event`;
+const scenePath = `rooms/${ROOM}/scene`;
 
 // Décalage d'horloge avec le serveur Firebase : permet un compte à rebours
 // identique sur le tableau et sur le téléphone, même si leurs horloges diffèrent.
@@ -97,6 +98,28 @@ export function subscribeEvent(cb) {
 export function subscribeConnection(cb) {
   if (!db) return;
   onValue(ref(db, ".info/connected"), (snap) => cb(Boolean(snap.val())));
+}
+
+// ---------------------------------------------------------------------
+//  Scènes du tableau : "insta" -> "teaser" -> "go" -> "board"
+//  (pilotées depuis la télécommande)
+// ---------------------------------------------------------------------
+export const SCENES = ["insta", "teaser", "go", "board"];
+
+export function subscribeScene(cb) {
+  if (!db) return;
+  onValue(ref(db, scenePath), (snap) => cb(snap.val() || "insta"));
+}
+
+export function setScene(name) {
+  if (!db) return Promise.resolve();
+  return set(ref(db, scenePath), name);
+}
+
+export async function ensureScene() {
+  if (!db) return;
+  const snap = await get(ref(db, scenePath));
+  if (!snap.exists()) await set(ref(db, scenePath), "insta");
 }
 
 export async function getState() {

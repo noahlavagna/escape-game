@@ -38,6 +38,17 @@ export const firebaseConfig = {
 export const ROOM = "main";
 
 // =====================================================================
+//  SCÈNES D'INTRO
+// =====================================================================
+// 👉 URL du compte Instagram de l'escape game (pour le QR code au tableau).
+//    Remplace par ton vrai lien, ex : "https://instagram.com/mon_escape".
+export const INSTA_URL = "https://instagram.com/";
+
+// Identifiant de la vidéo teaser YouTube (la partie après "v=" dans l'URL).
+// Pour https://www.youtube.com/watch?v=OTPyI3znRxg  ->  "OTPyI3znRxg"
+export const TEASER_YT_ID = "OTPyI3znRxg";
+
+// =====================================================================
 //  Pour verrouiller la base après l'événement (optionnel) :
 //  Realtime Database -> Règles -> remplace par {"rules":{".read":false,".write":false}}
 //  La clé apiKey ci-dessus n'est PAS secrète (c'est normal côté web).

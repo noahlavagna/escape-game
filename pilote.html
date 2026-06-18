@@ -23,6 +23,15 @@
     margin:6px 0 2px;width:max-content;}
   .card.locked .lockpill{display:inline-flex;}
 
+  /* navigation des scènes du tableau */
+  .scenebar{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  .scenebar button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 2px;
+    background:#12180c;border:1px solid var(--line);border-radius:5px;color:var(--muted);}
+  .scenebar button .sbic{font-size:22px;line-height:1;}
+  .scenebar button .sbl{font-size:10px;letter-spacing:.08em;font-family:var(--heavy);}
+  .scenebar button.cur{background:var(--toxic);border-color:var(--toxic);color:#0a0705;
+    box-shadow:0 0 20px rgba(155,255,59,.5);}
+
   .top{display:flex;align-items:center;justify-content:space-between;
     border-bottom:1px solid var(--line);padding:8px 2px 12px;margin-bottom:14px;}
   .top .t{font-family:var(--heavy);letter-spacing:.05em;color:var(--amber);font-size:18px;}
@@ -110,6 +119,15 @@
     </div>
 
     <div id="app" class="hide">
+      <!-- NAVIGATION DES SCÈNES DU TABLEAU -->
+      <div class="section-title" style="margin-top:0;border-top:none;padding-top:0">SCÈNE AU TABLEAU</div>
+      <div class="scenebar" id="scenebar">
+        <button data-scene="insta"><span class="sbic">📷</span><span class="sbl">INSTA</span></button>
+        <button data-scene="teaser"><span class="sbic">▶</span><span class="sbl">TEASER</span></button>
+        <button data-scene="go"><span class="sbic">🏁</span><span class="sbl">LANCEMENT</span></button>
+        <button data-scene="board"><span class="sbic">📊</span><span class="sbl">TABLEAU</span></button>
+      </div>
+
       <!-- ÉQUIPE A -->
       <div class="card" id="cardA">
         <h2 class="aName">SOUCHE A</h2>
@@ -181,8 +199,8 @@
 
   <script type="module">
     import {
-      configReady, ROOM, ensureState, subscribeState, subscribeConnection,
-      addShare, transfer, setName, resetState, launchSkill, fireEvent,
+      configReady, ROOM, ensureState, ensureScene, subscribeState, subscribeConnection,
+      subscribeScene, setScene, addShare, transfer, setName, resetState, launchSkill, fireEvent,
       launchEvent, EVENTS, SKILLS, other, serverNow
     } from "./firebase.js";
 
@@ -217,6 +235,7 @@
       e.innerHTML = "⚠ Firebase non configuré.<br>Ouvre <code>escape/firebase-config.js</code>, colle ta config Firebase puis recharge cette page.";
     } else {
       ensureState();
+      ensureScene();
       $("#app").classList.remove("hide");
       boot();
     }
@@ -227,6 +246,15 @@
       subscribeConnection((ok)=>{
         conn.classList.toggle("ok", ok); conn.classList.toggle("ko", !ok);
         $("#connTxt").textContent = ok ? "EN LIGNE · "+ROOM : "HORS LIGNE";
+      });
+
+      // navigation des scènes du tableau
+      const sceneBtns = $$("#scenebar button");
+      sceneBtns.forEach(b=>b.addEventListener("click",()=>{
+        setScene(b.dataset.scene); buzz(30); toast("→ "+b.querySelector(".sbl").textContent);
+      }));
+      subscribeScene((name)=>{
+        sceneBtns.forEach(b=>b.classList.toggle("cur", b.dataset.scene===name));
       });
 
       // miroir de l'état
