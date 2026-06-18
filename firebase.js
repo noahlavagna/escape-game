@@ -24,6 +24,12 @@ if (configReady) {
 const statePath = `rooms/${ROOM}/state`;
 const eventPath = `rooms/${ROOM}/event`;
 
+// Décalage d'horloge avec le serveur Firebase : permet un compte à rebours
+// identique sur le tableau et sur le téléphone, même si leurs horloges diffèrent.
+let serverOffset = 0;
+if (db) onValue(ref(db, ".info/serverTimeOffset"), (s) => { serverOffset = s.val() || 0; });
+export const serverNow = () => Date.now() + serverOffset;
+
 // ---------------------------------------------------------------------
 //  Compétences (skills). Pour en ajouter une plus tard : copie un bloc.
 // ---------------------------------------------------------------------
@@ -50,6 +56,18 @@ export const SKILLS = [
     anim: "steal",
     // att = équipe qui LANCE (attaquant) : elle GAGNE, l'adversaire perd.
     effect: (att, amount) => transfer(other(att), att, amount)
+  },
+  {
+    id: "confinement",
+    name: "CONFINEMENT",
+    tag: "GEL",
+    icon: "⛔",
+    desc: "La souche adverse est confinée — aucune action possible pendant 30 s.",
+    needsTarget: true,        // on choisit l'équipe qui LANCE ; l'autre est gelée
+    // pas d'« amount » : la télécommande masque le champ de montant.
+    anim: "lock",
+    freezeMs: 30000,
+    effect: (att) => lockTeam(other(att), 30000)
   }
 ];
 
@@ -124,6 +142,14 @@ export async function transfer(fromTeam, toTeam, amount) {
   return real;
 }
 
+// Verrouille une équipe jusqu'à (maintenant + ms). Le tableau et la
+// télécommande lisent ce timestamp pour afficher / appliquer le confinement.
+export function lockTeam(team, ms) {
+  if (!db) return Promise.resolve();
+  const key = team === "A" ? "teamA" : "teamB";
+  return set(ref(db, `${statePath}/${key}/lockUntil`), serverNow() + ms);
+}
+
 export function setName(team, name) {
   if (!db) return Promise.resolve();
   const key = team === "A" ? "teamA" : "teamB";
@@ -163,6 +189,52 @@ export async function launchSkill(skillId, attacker, amount) {
     title: skill.name,
     sub: skill.desc,
     team: skill.needsTarget ? attacker : null,
-    amount: real
+    amount: typeof real === "number" ? real : null
   });
+}
+
+// ---------------------------------------------------------------------
+//  ÉVÉNEMENTS — déclenchés par le Game Master à tout moment (globaux,
+//  non liés à une équipe). Même format que les compétences, sans cible.
+//  Pour en ajouter / retirer : édite ce tableau.
+// ---------------------------------------------------------------------
+export const EVENTS = [
+  {
+    id: "epidemie", name: "ÉPIDÉMIE", tag: "ÉPIDÉMIE", icon: "☠", anim: "alert",
+    desc: "Une souche au hasard est frappée : -10 % de parts de marché.",
+    effect: () => addShare(Math.random() < 0.5 ? "A" : "B", -10)
+  },
+  {
+    id: "cure", name: "CURE MIRACLE", tag: "CURE", icon: "✚", anim: "heal",
+    desc: "Reprise du marché : les deux souches regagnent +5 %.",
+    effect: async () => { await addShare("A", 5); await addShare("B", 5); }
+  },
+  {
+    id: "tempete", name: "TEMPÊTE DE MUTATIONS", tag: "TEMPÊTE", icon: "🌀", anim: "alert",
+    desc: "Chaos sur le marché : les deux souches perdent 8 %.",
+    effect: async () => { await addShare("A", -8); await addShare("B", -8); }
+  },
+  {
+    id: "blackout", name: "CONFINEMENT GÉNÉRAL", tag: "BLACKOUT", icon: "⛔", anim: "lock",
+    desc: "Quarantaine totale : les deux souches sont gelées 15 s.",
+    effect: async () => { await lockTeam("A", 15000); await lockTeam("B", 15000); }
+  },
+  {
+    id: "panne", name: "PANNE RÉSEAU", tag: "GLITCH", icon: "▓", anim: "glitch",
+    desc: "Interférences sur le réseau du marché…"
+  },
+  {
+    id: "alerte", name: "ALERTE SANITAIRE", tag: "ALERTE", icon: "⚠", anim: "alert",
+    desc: "Niveau de menace maximal. Tenez-vous prêts."
+  }
+];
+
+export const getEventDef = (id) => EVENTS.find((e) => e.id === id);
+
+// Lance un événement : applique son effet éventuel ET déclenche l'animation.
+export async function launchEvent(id) {
+  const ev = getEventDef(id);
+  if (!ev) return;
+  if (ev.effect) await ev.effect();
+  await fireEvent({ anim: ev.anim, title: ev.name, sub: ev.desc });
 }
