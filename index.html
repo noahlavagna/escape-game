@@ -169,6 +169,20 @@
   <div class="warn-strip bot"></div>
   <div class="biohazard">☣</div>
 
+  <!-- SCÈNE : 1ère question -->
+  <section class="scene intro" id="sceneFirstwinner">
+    <div class="kicker">// AVANTAGE DE DÉPART</div>
+    <div class="introTitle" style="font-size:clamp(28px,5.5vw,84px);margin:0 0 10px">QUI A GAGNÉ<br>LA 1<sup style="font-size:.55em">ÈRE</sup> QUESTION ?</div>
+    <div class="introSub" id="fwStatus">En attente du Game Master…</div>
+    <div id="fwTeam" style="display:none;flex-direction:column;align-items:center;gap:14px;margin-top:18px">
+      <div id="fwName" style="font-family:var(--heavy);font-size:clamp(46px,10vw,140px);
+        color:var(--toxic);text-shadow:0 0 50px var(--toxic-deep);letter-spacing:.04em;line-height:.95;animation:pulse 1s ease-in-out infinite"></div>
+      <div style="font-family:var(--mono);letter-spacing:.28em;color:var(--amber);font-size:clamp(13px,1.6vw,22px)">
+        ↳ COMMENCE 30 SECONDES AVANT L'ADVERSAIRE
+      </div>
+    </div>
+  </section>
+
   <!-- SCÈNE : Teaser vidéo -->
   <section class="scene intro" id="sceneTeaser">
     <div class="kicker">// TRANSMISSION INTERCEPTÉE</div>
@@ -242,7 +256,8 @@
   <script src="https://www.youtube.com/iframe_api"></script>
   <script type="module">
     import { configReady, ROOM, ensureState, ensureScene, subscribeState, subscribeEvent,
-             subscribeScene, setScene, getSkill, serverNow } from "./firebase.js";
+             subscribeScene, setScene, getSkill, serverNow,
+             subscribeFirstWinner, clearFirstWinner, lockTeam } from "./firebase.js";
     import { TEASER_YT_ID } from "./firebase-config.js";
 
     const $ = (s, r=document) => r.querySelector(s);
@@ -321,15 +336,23 @@
     }
     function stopTeaser(){ wantTeaser = false; try { ytPlayer && ytPlayer.pauseVideo(); } catch(e){} }
 
-    const SCENE_EL = { teaser:"#sceneTeaser", go:"#sceneGo", board:"#sceneBoard" };
-    let currentScene = null, goRunning = false, goTimers = [];
+    const SCENE_EL = { firstwinner:"#sceneFirstwinner", teaser:"#sceneTeaser", go:"#sceneGo", board:"#sceneBoard" };
+    let currentScene = null, goRunning = false, goTimers = [], pendingFirstWinner = null, teamNames = { A:"SOUCHE A", B:"SOUCHE B" };
     function showScene(name){
-      if (!SCENE_EL[name]) name = "teaser";   // scène inconnue => on retombe sur le teaser
+      if (!SCENE_EL[name]) name = "teaser";
+      const prev = currentScene;
       currentScene = name;
       Object.entries(SCENE_EL).forEach(([s, sel]) => $(sel).classList.toggle("active", s === name));
       if (name === "teaser") playTeaser(); else stopTeaser();
       if (name === "go") runGo();
       else { goTimers.forEach(clearTimeout); goTimers = []; goRunning = false; }
+      // Avantage de départ : quand le tableau s'ouvre, on confine le perdant 30s
+      if (name === "board" && pendingFirstWinner) {
+        const loser = pendingFirstWinner === "A" ? "B" : "A";
+        lockTeam(loser, 30000);
+        clearFirstWinner();
+        pendingFirstWinner = null;
+      }
     }
 
     function runGo(){
@@ -382,9 +405,25 @@
       // scènes pilotées depuis le téléphone
       subscribeScene((name) => showScene(name));
 
+      // avantage de départ : suit le vainqueur de la 1ère question
+      subscribeFirstWinner((winner) => {
+        pendingFirstWinner = winner;
+        const fwTeam = $("#fwTeam"), fwStatus = $("#fwStatus");
+        if (winner) {
+          $("#fwName").textContent = teamNames[winner] || "SOUCHE " + winner;
+          fwTeam.style.display = "flex";
+          fwStatus.style.display = "none";
+        } else {
+          fwTeam.style.display = "none";
+          fwStatus.style.display = "";
+        }
+      });
+
       subscribeState((st) => {
         renderTeam("A", st.teamA);
         renderTeam("B", st.teamB);
+        teamNames.A = st.teamA.name;
+        teamNames.B = st.teamB.name;
         lockUntil.A = st.teamA.lockUntil || 0;
         lockUntil.B = st.teamB.lockUntil || 0;
         const a = st.teamA.share, b = st.teamB.share;

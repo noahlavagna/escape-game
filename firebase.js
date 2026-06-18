@@ -104,7 +104,21 @@ export function subscribeConnection(cb) {
 //  Scènes du tableau : "insta" -> "teaser" -> "go" -> "board"
 //  (pilotées depuis la télécommande)
 // ---------------------------------------------------------------------
-export const SCENES = ["teaser", "go", "board"];
+export const SCENES = ["teaser", "firstwinner", "go", "board"];
+
+const firstWinnerPath = `rooms/${ROOM}/firstWinner`;
+export function setFirstWinner(team) {
+  if (!db) return Promise.resolve();
+  return set(ref(db, firstWinnerPath), team);
+}
+export function subscribeFirstWinner(cb) {
+  if (!db) return;
+  onValue(ref(db, firstWinnerPath), (snap) => cb(snap.val()));
+}
+export function clearFirstWinner() {
+  if (!db) return Promise.resolve();
+  return set(ref(db, firstWinnerPath), null);
+}
 
 export function subscribeScene(cb) {
   if (!db) return;
