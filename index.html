@@ -238,6 +238,9 @@
     <div class="seffect"></div>
   </div>
 
+  <!-- alarme jouée par le tableau (PC) ; déclenchée depuis le téléphone -->
+  <audio id="boardAlarm" loop playsinline></audio>
+
   <!-- porte d'entrée : config + QR + activation son/plein écran -->
   <div id="gate">
     <h1>// POSTE DE CONTRÔLE — ZONE INFECTÉE</h1>
@@ -257,7 +260,8 @@
   <script type="module">
     import { configReady, ROOM, ensureState, ensureScene, subscribeState, subscribeEvent,
              subscribeScene, setScene, getSkill, serverNow,
-             subscribeFirstWinner, clearFirstWinner, lockTeam, resetState, clearEvent } from "./firebase.js";
+             subscribeFirstWinner, clearFirstWinner, lockTeam, resetState, clearEvent,
+             subscribeAlarm, setAlarm } from "./firebase.js";
     import { TEASER_YT_ID } from "./firebase-config.js";
 
     const $ = (s, r=document) => r.querySelector(s);
@@ -308,6 +312,38 @@
       // sirène descendante + bips
       beep(880,.18,"sawtooth",.2,0); beep(620,.18,"sawtooth",.2,.16);
       beep(440,.3,"sawtooth",.2,.32); beep(1200,.08,"square",.12,.5);
+    }
+
+    /* ---- alarme en boucle (déclenchée depuis le téléphone) ----
+       On utilise un vrai élément <audio> : l'autorisation de lecture est
+       acquise par le clic sur "ARMER" (geste utilisateur sur cette page). */
+    const boardAlarm = $("#boardAlarm");
+    function sirenWav(){
+      const sr=8000, dur=0.8, n=Math.floor(sr*dur), data=new Int16Array(n);
+      for(let i=0;i<n;i++){
+        const t=i/sr, half=dur/2, inHalf=t<half?t:t-half;
+        const freq=t<half?880:660, env=Math.min(1,Math.min(inHalf,half-inHalf)*24);
+        data[i]=Math.round(Math.sin(2*Math.PI*freq*t)*32767*0.45*env);
+      }
+      const dataSize=data.length*2, ab=new ArrayBuffer(44+dataSize), dv=new DataView(ab); let o=0;
+      const ws=(s)=>{for(let i=0;i<s.length;i++)dv.setUint8(o++,s.charCodeAt(i));};
+      ws("RIFF");dv.setUint32(o,36+dataSize,true);o+=4;ws("WAVE");ws("fmt ");
+      dv.setUint32(o,16,true);o+=4;dv.setUint16(o,1,true);o+=2;dv.setUint16(o,1,true);o+=2;
+      dv.setUint32(o,sr,true);o+=4;dv.setUint32(o,sr*2,true);o+=4;
+      dv.setUint16(o,2,true);o+=2;dv.setUint16(o,16,true);o+=2;
+      ws("data");dv.setUint32(o,dataSize,true);o+=4;
+      for(let i=0;i<data.length;i++){dv.setInt16(o,data[i],true);o+=2;}
+      let bin="";const u8=new Uint8Array(ab);
+      for(let i=0;i<u8.length;i++)bin+=String.fromCharCode(u8[i]);
+      return "data:audio/wav;base64,"+btoa(bin);
+    }
+    function setBoardAlarm(on){
+      if(on){
+        if(!boardAlarm.src) boardAlarm.src = sirenWav();
+        boardAlarm.play().catch(()=>{});
+      } else {
+        boardAlarm.pause();
+      }
     }
 
     /* ===== SCÈNES + vidéo teaser ===== */
@@ -395,7 +431,7 @@
         // 1ère question, et on repart sur le teaser.
         (async () => {
           await clearEvent();
-          resetState(); clearFirstWinner(); setScene("teaser");
+          resetState(); clearFirstWinner(); setAlarm(false); setScene("teaser");
           start();
         })();
       }
@@ -413,6 +449,9 @@
 
       // scènes pilotées depuis le téléphone
       subscribeScene((name) => showScene(name));
+
+      // alarme déclenchée depuis le téléphone -> son joué ici (PC)
+      subscribeAlarm((on) => setBoardAlarm(on));
 
       // avantage de départ : suit le vainqueur de la 1ère question
       subscribeFirstWinner((winner) => {

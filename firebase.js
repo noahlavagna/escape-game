@@ -120,6 +120,17 @@ export function clearFirstWinner() {
   return set(ref(db, firstWinnerPath), null);
 }
 
+// Alarme : la télécommande écrit true/false, le TABLEAU (PC) joue le son.
+const alarmPath = `rooms/${ROOM}/alarm`;
+export function setAlarm(on) {
+  if (!db) return Promise.resolve();
+  return set(ref(db, alarmPath), !!on);
+}
+export function subscribeAlarm(cb) {
+  if (!db) return;
+  onValue(ref(db, alarmPath), (snap) => cb(Boolean(snap.val())));
+}
+
 export function subscribeScene(cb) {
   if (!db) return;
   onValue(ref(db, scenePath), (snap) => cb(snap.val() || "teaser"));
