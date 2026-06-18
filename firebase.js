@@ -76,8 +76,8 @@ export const other = (t) => (t === "A" ? "B" : "A");
 export const getSkill = (id) => SKILLS.find((s) => s.id === id);
 
 const DEFAULT_STATE = {
-  teamA: { name: "SOUCHE A", color: "#9bff3b", share: 50 },
-  teamB: { name: "SOUCHE B", color: "#b14bff", share: 50 }
+  teamA: { name: "SOUCHE A", color: "#9bff3b", share: 0 },
+  teamB: { name: "SOUCHE B", color: "#b14bff", share: 0 }
 };
 
 const clamp = (n) => Math.max(0, Math.min(100, Math.round(n)));
