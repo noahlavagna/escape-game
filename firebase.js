@@ -198,6 +198,13 @@ export function resetState() {
   return set(ref(db, statePath), DEFAULT_STATE);
 }
 
+// Efface l'évènement courant (appelé à l'armement du tableau pour repartir
+// propre, sinon le tableau pourrait rejouer une vieille animation).
+export function clearEvent() {
+  if (!db) return Promise.resolve();
+  return set(ref(db, eventPath), null);
+}
+
 // Déclenche une animation sur le tableau (id unique => rejoue à chaque fois).
 export function fireEvent({ anim, title, sub, team, amount }) {
   if (!db) return Promise.resolve();

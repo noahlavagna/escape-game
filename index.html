@@ -257,7 +257,7 @@
   <script type="module">
     import { configReady, ROOM, ensureState, ensureScene, subscribeState, subscribeEvent,
              subscribeScene, setScene, getSkill, serverNow,
-             subscribeFirstWinner, clearFirstWinner, lockTeam, resetState } from "./firebase.js";
+             subscribeFirstWinner, clearFirstWinner, lockTeam, resetState, clearEvent } from "./firebase.js";
     import { TEASER_YT_ID } from "./firebase-config.js";
 
     const $ = (s, r=document) => r.querySelector(s);
@@ -390,10 +390,14 @@
       document.body.classList.add("armed");   // masque le curseur
       gate.classList.add("hide");
       if (configReady) {
-        // nouvelle partie : on remet les parts à 0, on efface le confinement /
-        // le vainqueur de la 1ère question, et on repart sur le teaser.
-        resetState(); clearFirstWinner(); setScene("teaser");
-        start();
+        // nouvelle partie : on efface tout évènement résiduel AVANT d'écouter,
+        // on remet les parts à 0, on efface le confinement / le vainqueur de la
+        // 1ère question, et on repart sur le teaser.
+        (async () => {
+          await clearEvent();
+          resetState(); clearFirstWinner(); setScene("teaser");
+          start();
+        })();
       }
     }
     document.addEventListener("visibilitychange", async () => {
@@ -456,10 +460,11 @@
       }, 250);
 
       // événements / animations de compétence
+      // l'évènement a été effacé à l'armement : le 1er callback renvoie null
+      // (ignoré), donc la 1ère vraie animation envoyée s'affiche bien.
       let lastId = null;
       subscribeEvent((ev) => {
         if (!ev || !ev.id) return;
-        if (lastId === null) { lastId = ev.id; return; } // pas de rejeu au démarrage
         if (ev.id === lastId) return;
         lastId = ev.id;
         playSkill(ev);
