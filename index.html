@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>// GUERRE DES PARTS DE MARCHÉ</title>
+<title>// LE REMÈDE ESCAPE GAME</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Black+Ops+One&family=Share+Tech+Mono&display=swap" rel="stylesheet">
@@ -169,15 +169,6 @@
   <div class="warn-strip bot"></div>
   <div class="biohazard">☣</div>
 
-  <!-- SCÈNE : Instagram -->
-  <section class="scene intro" id="sceneInsta">
-    <div class="kicker">// AVANT DE COMMENCER</div>
-    <h1 class="introTitle glitch" data-text="SUIVEZ-NOUS">SUIVEZ-NOUS</h1>
-    <p class="introSub">Scannez pour rejoindre l'épidémie sur Instagram</p>
-    <div class="qrwrap"><div id="instaQr"></div></div>
-    <div class="introUrl" id="instaUrl"></div>
-  </section>
-
   <!-- SCÈNE : Teaser vidéo -->
   <section class="scene intro" id="sceneTeaser">
     <div class="kicker">// TRANSMISSION INTERCEPTÉE</div>
@@ -193,7 +184,7 @@
   <div class="board scene" id="sceneBoard">
     <header class="bar">
       <div class="rec"><span class="dot blink"></span> ZONE DE QUARANTAINE · DIRECT</div>
-      <div class="title glitch" data-text="GUERRE DES PARTS DE MARCHÉ">GUERRE DES PARTS DE MARCHÉ</div>
+      <div class="title glitch" data-text="LE REMÈDE ESCAPE GAME">LE REMÈDE ESCAPE GAME</div>
       <div id="clock">--:--:--</div>
     </header>
 
@@ -252,7 +243,7 @@
   <script type="module">
     import { configReady, ROOM, ensureState, ensureScene, subscribeState, subscribeEvent,
              subscribeScene, setScene, getSkill, serverNow } from "./firebase.js";
-    import { INSTA_URL, TEASER_YT_ID } from "./firebase-config.js";
+    import { TEASER_YT_ID } from "./firebase-config.js";
 
     const $ = (s, r=document) => r.querySelector(s);
 
@@ -285,15 +276,6 @@
           $("#qr").remove();
         }
       } catch (e) { console.warn("QR indisponible", e); }
-
-      // QR vers Instagram (scène d'intro)
-      try {
-        $("#instaUrl").textContent = INSTA_URL.replace(/^https?:\/\//, "").replace(/\/$/, "");
-        if (typeof QRCode !== "undefined") {
-          new QRCode($("#instaQr"), { text: INSTA_URL, width: 300, height: 300,
-            colorDark: "#0a0705", colorLight: "#ffffff" });
-        }
-      } catch (e) { console.warn("QR Insta indisponible", e); }
     }
 
     /* ---- audio (alarme synthétisée, pas de fichier) ---- */
@@ -339,9 +321,10 @@
     }
     function stopTeaser(){ wantTeaser = false; try { ytPlayer && ytPlayer.pauseVideo(); } catch(e){} }
 
-    const SCENE_EL = { insta:"#sceneInsta", teaser:"#sceneTeaser", go:"#sceneGo", board:"#sceneBoard" };
+    const SCENE_EL = { teaser:"#sceneTeaser", go:"#sceneGo", board:"#sceneBoard" };
     let currentScene = null, goRunning = false, goTimers = [];
     function showScene(name){
+      if (!SCENE_EL[name]) name = "teaser";   // scène inconnue => on retombe sur le teaser
       currentScene = name;
       Object.entries(SCENE_EL).forEach(([s, sel]) => $(sel).classList.toggle("active", s === name));
       if (name === "teaser") playTeaser(); else stopTeaser();

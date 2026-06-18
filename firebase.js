@@ -104,11 +104,11 @@ export function subscribeConnection(cb) {
 //  Scènes du tableau : "insta" -> "teaser" -> "go" -> "board"
 //  (pilotées depuis la télécommande)
 // ---------------------------------------------------------------------
-export const SCENES = ["insta", "teaser", "go", "board"];
+export const SCENES = ["teaser", "go", "board"];
 
 export function subscribeScene(cb) {
   if (!db) return;
-  onValue(ref(db, scenePath), (snap) => cb(snap.val() || "insta"));
+  onValue(ref(db, scenePath), (snap) => cb(snap.val() || "teaser"));
 }
 
 export function setScene(name) {
@@ -119,7 +119,7 @@ export function setScene(name) {
 export async function ensureScene() {
   if (!db) return;
   const snap = await get(ref(db, scenePath));
-  if (!snap.exists()) await set(ref(db, scenePath), "insta");
+  if (!snap.exists()) await set(ref(db, scenePath), "teaser");
 }
 
 export async function getState() {
