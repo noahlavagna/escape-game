@@ -7,7 +7,7 @@ import {
   getDatabase, ref, onValue, set, get, update, runTransaction, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-import { firebaseConfig, ROOM as CONFIG_ROOM } from "./firebase-config.js";
+import { firebaseConfig, ROOM as CONFIG_ROOM, VOICES } from "./firebase-config.js";
 
 // La salle : ?room=xxx dans l'URL sinon valeur du fichier de config.
 export const ROOM =
@@ -55,6 +55,7 @@ export const SKILLS = [
     needsTarget: true,
     amount: 10,
     anim: "steal",
+    voice: VOICES.vol,
     // att = équipe qui LANCE (attaquant) : elle GAGNE, l'adversaire perd.
     effect: (att, amount) => transfer(other(att), att, amount)
   },
@@ -67,6 +68,7 @@ export const SKILLS = [
     needsTarget: true,        // on choisit l'équipe qui LANCE ; l'autre est gelée
     // pas d'« amount » : la télécommande masque le champ de montant.
     anim: "lock",
+    voice: VOICES.confinement,
     freezeMs: 30000,
     effect: (att) => lockTeam(other(att), 30000)
   }
@@ -217,7 +219,7 @@ export function clearEvent() {
 }
 
 // Déclenche une animation sur le tableau (id unique => rejoue à chaque fois).
-export function fireEvent({ anim, title, sub, team, amount }) {
+export function fireEvent({ anim, title, sub, team, amount, voice }) {
   if (!db) return Promise.resolve();
   return set(ref(db, eventPath), {
     id: Date.now() + "-" + Math.random().toString(36).slice(2, 7),
@@ -226,6 +228,7 @@ export function fireEvent({ anim, title, sub, team, amount }) {
     sub: sub || "",
     team: team || null,
     amount: amount ?? null,
+    voice: voice || null,
     ts: serverTimestamp()
   });
 }
@@ -244,7 +247,8 @@ export async function launchSkill(skillId, attacker, amount) {
     title: skill.name,
     sub: skill.desc,
     team: skill.needsTarget ? attacker : null,
-    amount: typeof real === "number" ? real : null
+    amount: typeof real === "number" ? real : null,
+    voice: skill.voice
   });
 }
 
@@ -257,30 +261,36 @@ export const EVENTS = [
   {
     id: "epidemie", name: "ÉPIDÉMIE", tag: "ÉPIDÉMIE", icon: "☠", anim: "alert",
     desc: "Une souche au hasard est frappée : -10 % de parts de marché.",
+    voice: VOICES.epidemie,
     effect: () => addShare(Math.random() < 0.5 ? "A" : "B", -10)
   },
   {
     id: "cure", name: "CURE MIRACLE", tag: "CURE", icon: "✚", anim: "heal",
     desc: "Reprise du marché : les deux souches regagnent +5 %.",
+    voice: VOICES.cure,
     effect: async () => { await addShare("A", 5); await addShare("B", 5); }
   },
   {
     id: "tempete", name: "TEMPÊTE DE MUTATIONS", tag: "TEMPÊTE", icon: "🌀", anim: "alert",
     desc: "Chaos sur le marché : les deux souches perdent 8 %.",
+    voice: VOICES.tempete,
     effect: async () => { await addShare("A", -8); await addShare("B", -8); }
   },
   {
     id: "blackout", name: "CONFINEMENT GÉNÉRAL", tag: "BLACKOUT", icon: "⛔", anim: "lock",
     desc: "Quarantaine totale : les deux souches sont gelées 15 s.",
+    voice: VOICES.blackout,
     effect: async () => { await lockTeam("A", 15000); await lockTeam("B", 15000); }
   },
   {
     id: "panne", name: "PANNE RÉSEAU", tag: "GLITCH", icon: "▓", anim: "glitch",
-    desc: "Interférences sur le réseau du marché…"
+    desc: "Interférences sur le réseau du marché…",
+    voice: VOICES.panne
   },
   {
     id: "alerte", name: "ALERTE SANITAIRE", tag: "ALERTE", icon: "⚠", anim: "alert",
-    desc: "Niveau de menace maximal. Tenez-vous prêts."
+    desc: "Niveau de menace maximal. Tenez-vous prêts.",
+    voice: VOICES.alerte
   }
 ];
 
@@ -291,5 +301,5 @@ export async function launchEvent(id) {
   const ev = getEventDef(id);
   if (!ev) return;
   if (ev.effect) await ev.effect();
-  await fireEvent({ anim: ev.anim, title: ev.name, sub: ev.desc });
+  await fireEvent({ anim: ev.anim, title: ev.name, sub: ev.desc, voice: ev.voice });
 }

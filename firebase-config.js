@@ -45,17 +45,26 @@ export const ROOM = "main";
 export const TEASER_YT_ID = "OTPyI3znRxg";
 
 // =====================================================================
-//  VOIX (ex : Morgan Freeman) — jouée par le TABLEAU quand une équipe
-//  GAGNE des parts de marché.
+//  VOIX (Morgan Freeman) — jouées par le TABLEAU en plus du bruitage.
 // =====================================================================
-//  Dépose tes fichiers audio (mp3 / wav / m4a) dans le dossier escape/,
-//  puis indique leur nom de fichier ci-dessous, un par équipe.
-//  Laisse "" tant que tu n'as pas les fichiers : seul le bruitage jouera.
-//    A = voix quand la SOUCHE A (équipe de gauche) gagne
-//    B = voix quand la SOUCHE B (équipe de droite) gagne
-export const VOICE_GAIN = {
-  A: "",   // ex : "voix-equipe-a.mp3"
-  B: ""    // ex : "voix-equipe-b.mp3"
+//  Fichiers dans le dossier escape/voix/. Mets "" pour désactiver une voix
+//  (seul le bruitage jouera alors pour ce déclencheur).
+export const VOICES = {
+  gainA:       "voix/gain-a.aac",        // la souche A gagne des parts
+  gainB:       "voix/gain-b.aac",        // la souche B gagne des parts
+  perte:       "voix/perte.aac",         // une souche perd des parts
+  vol:         "voix/vol.aac",           // compétence : vol de parts
+  confinement: "voix/confinement.aac",   // compétence : confinement
+  epidemie:    "voix/epidemie.aac",      // événement : épidémie
+  cure:        "voix/cure.aac",          // événement : cure miracle
+  tempete:     "voix/tempete.aac",       // événement : tempête de mutations
+  blackout:    "voix/blackout.aac",      // événement : confinement général
+  panne:       "voix/panne.aac",         // événement : panne réseau
+  alerte:      "voix/alerte.aac",        // événement : alerte sanitaire
+  firstwinner: "voix/firstwinner-1.aac", // 1ère question gagnée (1ère partie)
+  firstwinner2:"voix/firstwinner-2.aac", // 1ère question gagnée (enchaînée)
+  lancement:   "voix/lancement.aac",     // « Partez ! »
+  alarme:      "voix/alarme.aac"         // alarme déclenchée
 };
 
 // =====================================================================

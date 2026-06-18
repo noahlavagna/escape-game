@@ -275,7 +275,7 @@
              subscribeScene, setScene, getSkill, serverNow,
              subscribeFirstWinner, clearFirstWinner, lockTeam, resetState, clearEvent,
              subscribeAlarm, setAlarm } from "./firebase.js";
-    import { TEASER_YT_ID, VOICE_GAIN } from "./firebase-config.js";
+    import { TEASER_YT_ID, VOICES } from "./firebase-config.js";
 
     const $ = (s, r=document) => r.querySelector(s);
 
@@ -354,6 +354,7 @@
       if(on){
         if(!boardAlarm.src) boardAlarm.src = sirenWav();
         boardAlarm.play().catch(()=>{});
+        playVoice(VOICES.alarme);            // + voix
       } else {
         boardAlarm.pause();
       }
@@ -370,13 +371,26 @@
       beep(330,.14,"sine",.16,0);
       beep(247,.22,"sine",.16,.12);
     }
-    // voix (Morgan Freeman) : un fichier par équipe, configuré dans firebase-config.js
-    const voiceEls = { A:null, B:null };
-    function playVoice(side){
-      const p = VOICE_GAIN && VOICE_GAIN[side];
-      if(!p) return;                       // pas de fichier => seul le bruitage joue
-      if(!voiceEls[side]) voiceEls[side] = new Audio(p);
-      try { voiceEls[side].currentTime = 0; voiceEls[side].play().catch(()=>{}); } catch(e){}
+    // voix (Morgan Freeman) : un seul lecteur partagé. Une nouvelle voix
+    // interrompt la précédente, mais on ne relance pas la MÊME voix si elle
+    // joue déjà (évite le bégaiement sur des clics +1 rapprochés).
+    const voiceAudio = new Audio();
+    function playVoice(src, opts={}){
+      if(!src) return;                       // pas de fichier => seul le bruitage joue
+      if(!voiceAudio.paused && voiceAudio.dataset.src === src) return;
+      try {
+        voiceAudio.onended = null;
+        voiceAudio.dataset.src = src;
+        voiceAudio.src = src; voiceAudio.currentTime = 0;
+        voiceAudio.play().catch(()=>{});
+        if(opts.then){                       // enchaîne un 2e fichier à la fin
+          voiceAudio.onended = () => {
+            voiceAudio.onended = null;
+            voiceAudio.dataset.src = opts.then;
+            voiceAudio.src = opts.then; voiceAudio.play().catch(()=>{});
+          };
+        }
+      } catch(e){}
     }
     function floatDelta(side, delta){
       const host = $("#team"+side);
@@ -445,6 +459,7 @@
         el.textContent = st.t; el.className = "goText"; void el.offsetWidth;
         el.classList.add(st.cls);
         try { beep(st.f, st.cls === "partez" ? .5 : .16, "square", .25); } catch(e){}
+        if (st.cls === "partez") playVoice(VOICES.lancement);   // « Que la contamination commence »
       }, i * 1100)));
       // après "PARTEZ !", bascule automatiquement vers le tableau des scores
       goTimers.push(setTimeout(() => {
@@ -496,6 +511,7 @@
       subscribeAlarm((on) => setBoardAlarm(on));
 
       // avantage de départ : suit le vainqueur de la 1ère question
+      let lastWinner = null;
       subscribeFirstWinner((winner) => {
         pendingFirstWinner = winner;
         const fwTeam = $("#fwTeam"), fwStatus = $("#fwStatus");
@@ -503,10 +519,13 @@
           $("#fwName").textContent = teamNames[winner] || "SOUCHE " + winner;
           fwTeam.style.display = "flex";
           fwStatus.style.display = "none";
+          // voix uniquement à la désignation (pas à chaque resync)
+          if (winner !== lastWinner) playVoice(VOICES.firstwinner, { then: VOICES.firstwinner2 });
         } else {
           fwTeam.style.display = "none";
           fwStatus.style.display = "";
         }
+        lastWinner = winner;
       });
 
       subscribeState((st) => {
@@ -517,8 +536,8 @@
           if (prev != null && cur !== prev) {
             const d = cur - prev;
             floatDelta(side, d);
-            if (d > 0) { gainSound(); playVoice(side); }
-            else { lossSound(); }
+            if (d > 0) { gainSound(); playVoice(side === "A" ? VOICES.gainA : VOICES.gainB); }
+            else { lossSound(); playVoice(VOICES.perte); }
           }
           prevShare[side] = cur;
         });
@@ -588,7 +607,8 @@
       if (ev.amount != null && ev.team){
         eff.innerHTML = `<span class="by">PARTS CONTAMINÉES</span>+${ev.amount}<span style="font-size:.5em">%</span>`;
       } else { eff.textContent = ""; }
-      alarm();
+      alarm();                       // bruitage
+      playVoice(ev.voice);           // + voix Morgan Freeman (si fichier défini)
       // effet glitch plein écran (événement Panne réseau)
       if (ev.anim === "glitch"){
         document.body.classList.add("glitchfx");
