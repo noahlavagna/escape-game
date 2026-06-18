@@ -257,7 +257,7 @@
   <script type="module">
     import { configReady, ROOM, ensureState, ensureScene, subscribeState, subscribeEvent,
              subscribeScene, setScene, getSkill, serverNow,
-             subscribeFirstWinner, clearFirstWinner, lockTeam } from "./firebase.js";
+             subscribeFirstWinner, clearFirstWinner, lockTeam, resetState } from "./firebase.js";
     import { TEASER_YT_ID } from "./firebase-config.js";
 
     const $ = (s, r=document) => r.querySelector(s);
@@ -389,7 +389,12 @@
       try { navigator.wakeLock?.request("screen").then(w => wakeLock = w).catch(()=>{}); } catch(e){}
       document.body.classList.add("armed");   // masque le curseur
       gate.classList.add("hide");
-      if (configReady) { ensureState(); ensureScene(); start(); }
+      if (configReady) {
+        // nouvelle partie : on remet les parts à 0, on efface le confinement /
+        // le vainqueur de la 1ère question, et on repart sur le teaser.
+        resetState(); clearFirstWinner(); setScene("teaser");
+        start();
+      }
     }
     document.addEventListener("visibilitychange", async () => {
       if (document.visibilityState === "visible" && !wakeLock)

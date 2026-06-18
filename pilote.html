@@ -216,7 +216,7 @@
       </div>
 
       <div class="section-title">PARTIE</div>
-      <button class="reset" id="reset">↺ RÉINITIALISER 50 / 50</button>
+      <button class="reset" id="reset">↺ RÉINITIALISER À 0</button>
     </div>
 
     <div id="errBox" class="err hide"></div>
@@ -443,7 +443,9 @@
 
       btnAlarm.addEventListener("click", () => {
         if (!alarmActive) {
-          alarmCtx = new AudioContext();
+          const AC = window.AudioContext || window.webkitAudioContext;
+          alarmCtx = new AC();
+          if (alarmCtx.state === "suspended") alarmCtx.resume(); // iOS : débloque le son
           alarmActive = true;
           alarmCycle(); vibLoop();
           btnAlarm.textContent = "⛔ ARRÊTER L'ALARME";
@@ -460,7 +462,7 @@
 
       // reset
       $("#reset").addEventListener("click",()=>{
-        if(confirm("Réinitialiser les parts à 50 / 50 et les noms par défaut ?")){
+        if(confirm("Réinitialiser les parts à 0 et les noms par défaut ?")){
           resetState(); buzz(60); toast("RÉINITIALISÉ");
         }
       });
