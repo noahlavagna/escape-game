@@ -69,8 +69,61 @@ export const SKILLS = [
     // pas d'« amount » : la télécommande masque le champ de montant.
     anim: "lock",
     voice: VOICES.confinement,
+    offensive: true,
     freezeMs: 30000,
     effect: (att) => lockTeam(other(att), 30000)
+  },
+  {
+    id: "sabotage",
+    name: "SABOTAGE",
+    tag: "SABOTAGE",
+    icon: "💣",
+    desc: "Destruction pure — la souche adverse perd 3 % de parts.",
+    needsTarget: true,
+    anim: "alert",
+    voice: VOICES.sabotage,
+    offensive: true,
+    effect: (att) => addShare(other(att), -3)
+  },
+  {
+    id: "pillage",
+    name: "PILLAGE",
+    tag: "PILLAGE",
+    icon: "🏴",
+    desc: "Razzia — tu voles le quart des parts actuelles de l'adversaire.",
+    needsTarget: true,
+    anim: "steal",
+    voice: VOICES.pillage,
+    offensive: true,
+    effect: async (att) => {
+      const st = await getState();
+      const vk = other(att) === "A" ? "teamA" : "teamB";
+      const amount = Math.floor((st[vk]?.share || 0) / 4);
+      return transfer(other(att), att, amount);
+    }
+  },
+  {
+    id: "vaccin",
+    name: "VACCIN",
+    tag: "VACCIN",
+    icon: "🛡",
+    desc: "Bouclier — la prochaine attaque subie est annulée.",
+    needsTarget: true,        // on choisit l'équipe qui se vaccine
+    anim: "heal",
+    voice: VOICES.vaccin,
+    effect: (att) => setShield(att, true)
+  },
+  {
+    id: "brouillage",
+    name: "BROUILLAGE DES DONNÉES",
+    tag: "BROUILLAGE",
+    icon: "📡",
+    desc: "Le score de la souche adverse devient illisible pendant 15 s.",
+    needsTarget: true,
+    anim: "glitch",
+    voice: VOICES.brouillage,
+    offensive: true,          // peut être bloqué par un vaccin
+    effect: (att) => scrambleTeam(other(att), 15000)
   }
 ];
 
@@ -217,6 +270,20 @@ export function lockTeam(team, ms) {
   return set(ref(db, `${statePath}/${key}/lockUntil`), serverNow() + ms);
 }
 
+// Bouclier (vaccin) : la prochaine attaque offensive subie sera annulée.
+export function setShield(team, on) {
+  if (!db) return Promise.resolve();
+  const key = team === "A" ? "teamA" : "teamB";
+  return set(ref(db, `${statePath}/${key}/shield`), on ? true : null);
+}
+
+// Brouillage : rend le score d'une équipe illisible jusqu'à (maintenant + ms).
+export function scrambleTeam(team, ms) {
+  if (!db) return Promise.resolve();
+  const key = team === "A" ? "teamA" : "teamB";
+  return set(ref(db, `${statePath}/${key}/scrambleUntil`), serverNow() + ms);
+}
+
 export function setName(team, name) {
   if (!db) return Promise.resolve();
   const key = team === "A" ? "teamA" : "teamB";
@@ -254,6 +321,26 @@ export function fireEvent({ anim, title, sub, team, amount, voice }) {
 export async function launchSkill(skillId, attacker, amount) {
   const skill = getSkill(skillId);
   if (!skill) return;
+
+  // Bouclier (vaccin) : si la compétence est offensive et que la cible est
+  // vaccinée, on annule l'attaque et on consomme le bouclier.
+  if (skill.offensive) {
+    const victim = other(attacker);
+    const vk = victim === "A" ? "teamA" : "teamB";
+    const st = await getState();
+    if (st[vk] && st[vk].shield) {
+      await update(ref(db, statePath), { [`${vk}/shield`]: null });
+      await fireEvent({
+        anim: "heal",
+        title: "VACCIN — ATTAQUE BLOQUÉE",
+        sub: "La souche visée était immunisée.",
+        team: victim,
+        voice: VOICES.vaccinBlock
+      });
+      return;   // l'attaque n'a aucun effet
+    }
+  }
+
   let real = amount;
   if (skill.effect) {
     const r = await skill.effect(attacker, amount);
@@ -308,6 +395,18 @@ export const EVENTS = [
     id: "alerte", name: "ALERTE SANITAIRE", tag: "ALERTE", icon: "⚠", anim: "alert",
     desc: "Niveau de menace maximal. Tenez-vous prêts.",
     voice: VOICES.alerte
+  },
+  {
+    id: "patientzero", name: "PATIENT ZÉRO", tag: "PATIENT 0", icon: "🧟", anim: "lock",
+    desc: "Une souche au hasard est confinée 20 s.",
+    voice: VOICES.patientzero,
+    effect: () => lockTeam(Math.random() < 0.5 ? "A" : "B", 20000)
+  },
+  {
+    id: "brouillagegen", name: "BROUILLAGE GÉNÉRAL", tag: "BROUILLAGE", icon: "📡", anim: "glitch",
+    desc: "Plus aucun score n'est lisible pendant 12 s.",
+    voice: VOICES.brouillagegen,
+    effect: async () => { await scrambleTeam("A", 12000); await scrambleTeam("B", 12000); }
   }
 ];
 

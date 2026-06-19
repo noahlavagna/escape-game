@@ -59,6 +59,20 @@
     100%{opacity:0;transform:translate(-50%,-120px) scale(.95);}
   }
 
+  /* ---- bouclier (vaccin) actif ---- */
+  .team.shielded::after{content:"🛡 VACCINÉ";position:absolute;top:4px;left:50%;
+    transform:translateX(-50%);font-family:var(--heavy);font-size:clamp(11px,1.1vw,15px);
+    letter-spacing:.16em;color:#9bf3bd;background:rgba(11,42,20,.9);border:1px solid #2ecc71;
+    padding:3px 10px;box-shadow:0 0 16px #2ecc71;z-index:7;}
+
+  /* ---- score brouillé (illisible) ---- */
+  .team.scrambled .pct{filter:blur(22px);}
+  .team.scrambled .gauge .fill{filter:blur(6px);}
+  .team.scrambled::before{content:"📡 SIGNAL BROUILLÉ";position:absolute;top:48%;left:50%;
+    transform:translate(-50%,-50%);font-family:var(--heavy);font-size:clamp(13px,1.5vw,20px);
+    letter-spacing:.16em;color:var(--amber);background:rgba(45,30,2,.9);border:1px solid var(--amber);
+    padding:6px 14px;z-index:7;white-space:nowrap;animation:lockpulse 1s steps(2) infinite;}
+
   /* ---- confinement (verrou + compte à rebours) ---- */
   .lockbox{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;
     justify-content:center;gap:8px;background:rgba(45,2,2,.8);border:2px solid var(--red);
@@ -534,6 +548,7 @@
     /* ---- rendu de l'état ---- */
     let started = false;
     const lockUntil = { A: 0, B: 0 };
+    const scrambleUntil = { A: 0, B: 0 };    // brouillage des scores
     const prevShare = { A: null, B: null };  // pour détecter les gains / pertes
     function start(){
       if (started) return; started = true;
@@ -589,6 +604,11 @@
         teamNames.B = st.teamB.name;
         lockUntil.A = st.teamA.lockUntil || 0;
         lockUntil.B = st.teamB.lockUntil || 0;
+        scrambleUntil.A = st.teamA.scrambleUntil || 0;
+        scrambleUntil.B = st.teamB.scrambleUntil || 0;
+        // bouclier vaccin actif
+        $("#teamA").classList.toggle("shielded", !!st.teamA.shield);
+        $("#teamB").classList.toggle("shielded", !!st.teamB.shield);
         const a = st.teamA.share, b = st.teamB.share;
         // jauge "bras de fer" : part de A sur le total
         const ratio = (a + b) > 0 ? (a / (a + b)) * 100 : 50;
@@ -599,17 +619,18 @@
         $("#teamB").classList.toggle("is-lead", b > a);
       });
 
-      // compte à rebours de confinement (tableau)
+      // compte à rebours de confinement + brouillage (tableau)
       setInterval(() => {
         ["A","B"].forEach((side) => {
-          const rem = lockUntil[side] - serverNow();
           const el = $("#team"+side);
+          const rem = lockUntil[side] - serverNow();
           if (rem > 0) {
             el.classList.add("locked");
             $(".lkt", el).innerHTML = Math.ceil(rem/1000) + '<span class="lks">S</span>';
           } else {
             el.classList.remove("locked");
           }
+          el.classList.toggle("scrambled", (scrambleUntil[side] - serverNow()) > 0);
         });
       }, 250);
 

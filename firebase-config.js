@@ -64,7 +64,17 @@ export const VOICES = {
   firstwinner: "voix/firstwinner-1.aac", // 1ère question gagnée (1ère partie)
   firstwinner2:"voix/firstwinner-2.aac", // 1ère question gagnée (enchaînée)
   lancement:   "voix/lancement.aac",     // « Partez ! »
-  alarme:      "voix/alarme.aac"         // alarme déclenchée
+  alarme:      "voix/alarme.aac",        // alarme déclenchée
+
+  // --- nouvelles compétences / événements : laisse "" tant que pas enregistré
+  //     (seul le bruitage jouera). Mets le nom du fichier quand tu l'as.
+  sabotage:      "",   // ex : "voix/sabotage.aac"       — compétence Sabotage
+  pillage:       "",   // ex : "voix/pillage.aac"        — compétence Pillage
+  vaccin:        "",   // ex : "voix/vaccin.aac"         — compétence Vaccin (activation)
+  vaccinBlock:   "",   // ex : "voix/vaccin-bloque.aac"  — quand une attaque est bloquée
+  brouillage:    "",   // ex : "voix/brouillage.aac"     — compétence Brouillage
+  patientzero:   "",   // ex : "voix/patient-zero.aac"   — événement Patient Zéro
+  brouillagegen: ""    // ex : "voix/brouillage-general.aac" — événement Brouillage général
 };
 
 // =====================================================================
