@@ -75,6 +75,9 @@ export const MUSIC = "musique/ambiance.mp3";
 export const MUSIC_VOLUME = 0.55;   // volume normal (0 à 1)
 export const MUSIC_DUCK   = 0.12;   // volume baissé pendant les voix
 
+// Volume des voix Morgan Freeman (0 à 1). Baisse cette valeur si trop fort.
+export const VOICE_VOLUME = 0.55;
+
 // =====================================================================
 //  Pour verrouiller la base après l'événement (optionnel) :
 //  Realtime Database -> Règles -> remplace par {"rules":{".read":false,".write":false}}

@@ -278,7 +278,7 @@
              subscribeScene, setScene, getSkill, serverNow,
              subscribeFirstWinner, clearFirstWinner, lockTeam, resetState, clearEvent,
              subscribeAlarm, setAlarm, subscribeMusic, clearMusic } from "./firebase.js";
-    import { TEASER_YT_ID, VOICES, MUSIC, MUSIC_VOLUME, MUSIC_DUCK } from "./firebase-config.js";
+    import { TEASER_YT_ID, VOICES, MUSIC, MUSIC_VOLUME, MUSIC_DUCK, VOICE_VOLUME } from "./firebase-config.js";
 
     const $ = (s, r=document) => r.querySelector(s);
 
@@ -396,6 +396,7 @@
     // interrompt la précédente, mais on ne relance pas la MÊME voix si elle
     // joue déjà (évite le bégaiement sur des clics +1 rapprochés).
     const voiceAudio = new Audio();
+    voiceAudio.volume = VOICE_VOLUME;        // volume des voix (réglable dans la config)
     function playVoice(src, opts={}){
       if(!src) return;                       // pas de fichier => seul le bruitage joue
       if(!voiceAudio.paused && voiceAudio.dataset.src === src) return;
