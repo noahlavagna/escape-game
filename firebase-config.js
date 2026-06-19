@@ -66,27 +66,27 @@ export const VOICES = {
   lancement:   "voix/lancement.aac",     // « Partez ! »
   alarme:      "voix/alarme.aac",        // alarme déclenchée
 
-  // --- nouvelles compétences / événements : laisse "" tant que pas enregistré
-  //     (seul le bruitage jouera). Mets le nom du fichier quand tu l'as.
-  sabotage:      "",   // ex : "voix/sabotage.aac"       — compétence Sabotage
-  pillage:       "",   // ex : "voix/pillage.aac"        — compétence Pillage
-  vaccin:        "",   // ex : "voix/vaccin.aac"         — compétence Vaccin (activation)
-  vaccinBlock:   "",   // ex : "voix/vaccin-bloque.aac"  — quand une attaque est bloquée
-  brouillage:    "",   // ex : "voix/brouillage.aac"     — compétence Brouillage
-  patientzero:   "",   // ex : "voix/patient-zero.aac"   — événement Patient Zéro
-  brouillagegen: "",   // ex : "voix/brouillage-general.aac" — événement Brouillage général
+  // --- nouvelles compétences / événements
+  //     Mets "" si tu n'as pas encore enregistré le fichier correspondant.
+  sabotage:      "voix/sabotage.aac",
+  pillage:       "voix/pillage.aac",
+  vaccin:        "voix/vaccin.aac",
+  vaccinBlock:   "voix/vaccin-bloque.aac",
+  brouillage:    "voix/brouillage.aac",
+  patientzero:   "voix/patient-zero.aac",
+  brouillagegen: "voix/brouillage-general.aac",
 
-  // --- gages physiques (events) : voix optionnelle, laisse "" sinon
-  decontamination:  "",
-  vertige:          "",
-  convulsions:      "",
-  apnee:            "",
-  porteursain:      "",
-  paralysie:        "",
-  quarantaineperso: "",
-  mutationmotrice:  "",
-  cri:              "",
-  isolement:        ""
+  // --- gages physiques (events)
+  decontamination:  "voix/decontamination.aac",
+  vertige:          "voix/vertige.aac",
+  convulsions:      "voix/convulsions.aac",
+  apnee:            "voix/apnee.aac",
+  porteursain:      "voix/porteur-sain.aac",
+  paralysie:        "voix/paralysie.aac",
+  quarantaineperso: "voix/quarantaine.aac",
+  mutationmotrice:  "voix/mutation-motrice.aac",
+  cri:              "voix/cri.aac",
+  isolement:        "voix/isolement.aac"
 };
 
 // =====================================================================
