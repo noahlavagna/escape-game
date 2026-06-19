@@ -444,11 +444,13 @@
       wantTeaser = true;
       if (!ytReady || !ytPlayer) return;   // sera relancé par onReady
       try {
-        ytPlayer.seekTo(0); ytPlayer.unMute(); ytPlayer.setVolume(100); ytPlayer.playVideo();
-        // filet anti-blocage autoplay : si pas lancé sous 1 s, on relance en muet
+        const st = ytPlayer.getPlayerState?.();
+        if (st !== 1) ytPlayer.seekTo(0);   // ne pas redémarrer si déjà en lecture
+        ytPlayer.unMute(); ytPlayer.setVolume(100); ytPlayer.playVideo();
+        // filet anti-blocage autoplay : si pas lancé sous 1,5 s, on relance en muet
         setTimeout(() => {
           try { if (wantTeaser && ytPlayer.getPlayerState() !== 1){ ytPlayer.mute(); ytPlayer.playVideo(); } } catch(e){}
-        }, 1000);
+        }, 1500);
       } catch(e){}
     }
     function stopTeaser(){ wantTeaser = false; try { ytPlayer && ytPlayer.pauseVideo(); } catch(e){} }
@@ -509,6 +511,10 @@
       try { navigator.wakeLock?.request("screen").then(w => wakeLock = w).catch(()=>{}); } catch(e){}
       document.body.classList.add("armed");   // masque le curseur
       gate.classList.add("hide");
+      // Lance le teaser AVEC le son MAINTENANT, pendant le geste utilisateur
+      // (showScene appelle playTeaser) : sinon le navigateur bloque l'autoplay
+      // sonore et la vidéo part en muet.
+      showScene("teaser");
       if (configReady) {
         // nouvelle partie : on efface tout évènement résiduel AVANT d'écouter,
         // on remet les parts à 0, on efface le confinement / le vainqueur de la
