@@ -379,12 +379,16 @@
        On utilise un vrai élément <audio> : l'autorisation de lecture est
        acquise par le clic sur "ARMER" (geste utilisateur sur cette page). */
     const boardAlarm = $("#boardAlarm");
+    // Sirène deux-tons en boucle parfaite (1,2 s, montée/descente continue).
     function sirenWav(){
-      const sr=8000, dur=0.8, n=Math.floor(sr*dur), data=new Int16Array(n);
+      const sr=8000, dur=1.2, n=Math.floor(sr*dur), data=new Int16Array(n);
       for(let i=0;i<n;i++){
-        const t=i/sr, half=dur/2, inHalf=t<half?t:t-half;
-        const freq=t<half?880:660, env=Math.min(1,Math.min(inHalf,half-inHalf)*24);
-        data[i]=Math.round(Math.sin(2*Math.PI*freq*t)*32767*0.45*env);
+        const t=i/sr;
+        // fréquence qui oscille en continu (boucle sans claquement)
+        const freq=720+260*Math.sin(2*Math.PI*(t/dur));
+        // fondu très court aux extrémités pour une boucle propre
+        const edge=Math.min(1, Math.min(t, dur-t)*60);
+        data[i]=Math.round(Math.sin(2*Math.PI*freq*t)*32767*0.7*edge);
       }
       const dataSize=data.length*2, ab=new ArrayBuffer(44+dataSize), dv=new DataView(ab); let o=0;
       const ws=(s)=>{for(let i=0;i<s.length;i++)dv.setUint8(o++,s.charCodeAt(i));};
@@ -398,13 +402,25 @@
       for(let i=0;i<u8.length;i++)bin+=String.fromCharCode(u8[i]);
       return "data:audio/wav;base64,"+btoa(bin);
     }
+    // Bouclage GARANTI en JS : on ne se fie pas au seul attribut "loop"
+    // (peu fiable sur certains navigateurs avec un data-URI), on relance
+    // explicitement le son à chaque fin tant que l'alarme est active.
+    let alarmOn = false;
+    boardAlarm.loop = true;
+    boardAlarm.volume = 1;
+    boardAlarm.addEventListener("ended", () => {
+      if (alarmOn) { try { boardAlarm.currentTime = 0; } catch(e){} boardAlarm.play().catch(()=>{}); }
+    });
     function setBoardAlarm(on){
+      alarmOn = on;
       if(on){
         if(!boardAlarm.src) boardAlarm.src = sirenWav();
+        try { boardAlarm.currentTime = 0; } catch(e){}
         boardAlarm.play().catch(()=>{});
-        playVoice(VOICES.alarme);            // + voix
+        playVoice(VOICES.alarme);            // + voix (une fois, par-dessus la sirène)
       } else {
         boardAlarm.pause();
+        try { boardAlarm.currentTime = 0; } catch(e){}
       }
     }
 
