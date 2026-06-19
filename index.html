@@ -664,7 +664,8 @@
       skill.classList.add("show", ev.anim || "alert", "shake");
       $(".stitle", skill).textContent = ev.title || "COMPÉTENCE";
       $(".ssub", skill).textContent = ev.sub || "";
-      $(".sicon", skill).textContent = ICONS[ev.anim] || "⚠";
+      // emoji propre à l'événement (gages physiques) sinon icône liée à l'anim
+      $(".sicon", skill).textContent = ev.icon || ICONS[ev.anim] || "⚠";
       const eff = $(".seffect", skill);
       if (ev.amount != null && ev.team){
         eff.innerHTML = `<span class="by">PARTS CONTAMINÉES</span>+${ev.amount}<span style="font-size:.5em">%</span>`;
@@ -677,7 +678,8 @@
         clearTimeout(glitchTimer);
         glitchTimer = setTimeout(() => document.body.classList.remove("glitchfx"), 1600);
       }
-      skillTimer = setTimeout(() => skill.classList.remove("show"), 6000);
+      // durée d'affichage : plus longue pour les gages physiques (ev.hold)
+      skillTimer = setTimeout(() => skill.classList.remove("show"), ev.hold || 6000);
     }
 
     // si la config est déjà prête et qu'on a déjà armé (rechargement), démarre direct

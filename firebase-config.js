@@ -74,7 +74,19 @@ export const VOICES = {
   vaccinBlock:   "",   // ex : "voix/vaccin-bloque.aac"  — quand une attaque est bloquée
   brouillage:    "",   // ex : "voix/brouillage.aac"     — compétence Brouillage
   patientzero:   "",   // ex : "voix/patient-zero.aac"   — événement Patient Zéro
-  brouillagegen: ""    // ex : "voix/brouillage-general.aac" — événement Brouillage général
+  brouillagegen: "",   // ex : "voix/brouillage-general.aac" — événement Brouillage général
+
+  // --- gages physiques (events) : voix optionnelle, laisse "" sinon
+  decontamination:  "",
+  vertige:          "",
+  convulsions:      "",
+  apnee:            "",
+  porteursain:      "",
+  paralysie:        "",
+  quarantaineperso: "",
+  mutationmotrice:  "",
+  cri:              "",
+  isolement:        ""
 };
 
 // =====================================================================

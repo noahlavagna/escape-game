@@ -303,7 +303,7 @@ export function clearEvent() {
 }
 
 // Déclenche une animation sur le tableau (id unique => rejoue à chaque fois).
-export function fireEvent({ anim, title, sub, team, amount, voice }) {
+export function fireEvent({ anim, title, sub, team, amount, voice, hold, icon }) {
   if (!db) return Promise.resolve();
   return set(ref(db, eventPath), {
     id: Date.now() + "-" + Math.random().toString(36).slice(2, 7),
@@ -313,6 +313,8 @@ export function fireEvent({ anim, title, sub, team, amount, voice }) {
     team: team || null,
     amount: amount ?? null,
     voice: voice || null,
+    hold: hold ?? null,
+    icon: icon || null,
     ts: serverTimestamp()
   });
 }
@@ -407,6 +409,49 @@ export const EVENTS = [
     desc: "Plus aucun score n'est lisible pendant 12 s.",
     voice: VOICES.brouillagegen,
     effect: async () => { await scrambleTeam("A", 12000); await scrambleTeam("B", 12000); }
+  },
+
+  // --- GAGES PHYSIQUES : affichent une consigne au tableau (aucune part touchée).
+  //     hold = durée d'affichage plus longue pour laisser le temps de lire/faire.
+  {
+    id: "decontamination", name: "DÉCONTAMINATION", tag: "POMPES", icon: "🧴", anim: "alert", hold: 13000,
+    desc: "Un membre fait 15 POMPES pour purger la zone.", voice: VOICES.decontamination
+  },
+  {
+    id: "vertige", name: "VERTIGE", tag: "VERTIGE", icon: "🌀", anim: "alert", hold: 13000,
+    desc: "Une personne tourne 10 FOIS sur elle-même, puis reprend.", voice: VOICES.vertige
+  },
+  {
+    id: "convulsions", name: "CONVULSIONS", tag: "CONVULSIONS", icon: "🦠", anim: "alert", hold: 13000,
+    desc: "Toute l'équipe TREMBLE sans s'arrêter pendant 20 secondes.", voice: VOICES.convulsions
+  },
+  {
+    id: "apnee", name: "APNÉE", tag: "APNÉE", icon: "🫁", anim: "alert", hold: 13000,
+    desc: "Une personne RETIENT SA RESPIRATION le plus longtemps possible.", voice: VOICES.apnee
+  },
+  {
+    id: "porteursain", name: "PORTEUR SAIN", tag: "MAIN TÊTE", icon: "🤚", anim: "alert", hold: 13000,
+    desc: "Une personne garde UNE MAIN SUR LA TÊTE jusqu'au prochain événement.", voice: VOICES.porteursain
+  },
+  {
+    id: "paralysie", name: "PARALYSIE", tag: "MAINS KO", icon: "🧟", anim: "alert", hold: 13000,
+    desc: "Le chef d'équipe ne peut PLUS UTILISER SES MAINS jusqu'au prochain événement.", voice: VOICES.paralysie
+  },
+  {
+    id: "quarantaineperso", name: "MISE EN QUARANTAINE", tag: "SILENCE", icon: "🙊", anim: "alert", hold: 13000,
+    desc: "La dernière personne à avoir parlé SE TAIT jusqu'au prochain événement.", voice: VOICES.quarantaineperso
+  },
+  {
+    id: "mutationmotrice", name: "MUTATION MOTRICE", tag: "EN CRABE", icon: "🦀", anim: "alert", hold: 13000,
+    desc: "Tout le monde se déplace EN CRABE jusqu'au prochain événement.", voice: VOICES.mutationmotrice
+  },
+  {
+    id: "cri", name: "CRI DE RALLIEMENT", tag: "CRI", icon: "📣", anim: "alert", hold: 13000,
+    desc: "L'équipe doit HURLER SON NOM DE SOUCHE à l'unisson !", voice: VOICES.cri
+  },
+  {
+    id: "isolement", name: "ISOLEMENT", tag: "ISOLEMENT", icon: "🧍", anim: "alert", hold: 13000,
+    desc: "Une personne va dans un coin, DOS AU GROUPE, pendant 1 minute.", voice: VOICES.isolement
   }
 ];
 
@@ -417,5 +462,5 @@ export async function launchEvent(id) {
   const ev = getEventDef(id);
   if (!ev) return;
   if (ev.effect) await ev.effect();
-  await fireEvent({ anim: ev.anim, title: ev.name, sub: ev.desc, voice: ev.voice });
+  await fireEvent({ anim: ev.anim, title: ev.name, sub: ev.desc, voice: ev.voice, hold: ev.hold, icon: ev.icon });
 }
