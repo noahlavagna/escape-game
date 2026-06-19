@@ -546,8 +546,9 @@
         musicCommand(m.cmd);
       });
 
-      // avantage de départ : suit le vainqueur de la 1ère question
-      let lastWinner = null;
+      // avantage de départ : suit le vainqueur de la 1ère question.
+      // PAS de voix ici : la voix de lancement (« Partez ») arrive juste après
+      // et les deux se chevaucheraient.
       subscribeFirstWinner((winner) => {
         pendingFirstWinner = winner;
         const fwTeam = $("#fwTeam"), fwStatus = $("#fwStatus");
@@ -555,13 +556,10 @@
           $("#fwName").textContent = teamNames[winner] || "SOUCHE " + winner;
           fwTeam.style.display = "flex";
           fwStatus.style.display = "none";
-          // voix uniquement à la désignation (pas à chaque resync)
-          if (winner !== lastWinner) playVoice(VOICES.firstwinner, { then: VOICES.firstwinner2 });
         } else {
           fwTeam.style.display = "none";
           fwStatus.style.display = "";
         }
-        lastWinner = winner;
       });
 
       subscribeState((st) => {
