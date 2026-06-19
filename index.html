@@ -85,6 +85,34 @@
   .lockbox .lks{font-size:.32em;opacity:.7;}
   @keyframes lockpulse{50%{background:rgba(80,4,4,.88)}}
 
+  /* ---- TABLEAU DES EFFETS ACTIFS (bandeau sous l'en-tête) ---- */
+  #fxbar{display:flex;flex-wrap:wrap;gap:10px;align-content:flex-start;
+    padding:12px 0 2px;transition:padding .25s;}
+  #fxbar:empty{display:none;}
+  .fxchip{display:flex;align-items:center;gap:12px;background:rgba(20,11,6,.94);
+    border:1px solid var(--line);border-left:5px solid var(--amber);padding:8px 16px;
+    min-width:230px;animation:fxin .3s ease-out;}
+  @keyframes fxin{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  .fxchip .fxi{font-size:clamp(22px,2.6vw,34px);line-height:1;filter:drop-shadow(0 0 10px var(--amber));}
+  .fxchip .fxmeta{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .fxchip .fxname{font-family:var(--heavy);font-size:clamp(13px,1.5vw,19px);
+    letter-spacing:.04em;color:var(--ink);white-space:nowrap;}
+  .fxchip .fxteam{font-family:var(--mono);font-size:clamp(10px,1vw,12px);
+    letter-spacing:.2em;color:var(--muted);white-space:nowrap;}
+  .fxchip .fxtime{font-family:var(--display);font-size:clamp(26px,3vw,40px);line-height:1;
+    color:var(--amber);margin-left:auto;padding-left:18px;font-variant-numeric:tabular-nums;}
+  /* « jusqu'au prochain événement » : pas de chrono, libellé en toxique */
+  .fxchip.untilnext{border-left-color:var(--toxic);}
+  .fxchip.untilnext .fxtime{font-family:var(--mono);font-size:clamp(10px,1.1vw,13px);
+    letter-spacing:.1em;color:var(--toxic);max-width:13ch;text-align:right;
+    white-space:normal;line-height:1.15;}
+  /* chronomètre qui monte (apnée) */
+  .fxchip.countup{border-left-color:#4fd0ff;}
+  .fxchip.countup .fxtime{color:#9fe6ff;}
+  /* derniers instants : pulse rouge */
+  .fxchip.warn{border-left-color:var(--red);animation:lockpulse 1s steps(2) infinite;}
+  .fxchip.warn .fxtime{color:#fff;}
+
   /* curseur masqué une fois le tableau armé (visible avant pour cliquer) */
   body.armed{cursor:none;}
 
@@ -228,6 +256,9 @@
       <div class="title glitch" data-text="L'ANTIDOTE ESCAPE GAME">L'ANTIDOTE ESCAPE GAME</div>
       <div id="clock">--:--:--</div>
     </header>
+
+    <!-- tableau des effets en cours (compte à rebours par événement) -->
+    <div id="fxbar"></div>
 
     <main class="arena">
       <section class="team" id="teamA">
@@ -441,6 +472,74 @@
       setTimeout(() => el.remove(), 1550);
     }
 
+    /* ===== TABLEAU DES EFFETS ACTIFS (compte à rebours par événement) ===== */
+    // Gages physiques suivis ici (les effets confinement/brouillage sont, eux,
+    // déduits directement de l'état des équipes — voir renderFx).
+    let activeFx = [];   // { label, icon, untilNext, countUp, startAt, endsAt }
+    const fxbar = $("#fxbar");
+
+    function fmtDown(ms){                       // compte à rebours -> "M:SS" ou "Ns"
+      const s = Math.max(0, Math.ceil(ms/1000));
+      if (s >= 60){ const m = Math.floor(s/60); return m + ":" + String(s%60).padStart(2,"0"); }
+      return s + "s";
+    }
+    function fmtUp(ms){                          // chrono qui monte -> "M:SS"
+      const s = Math.max(0, Math.floor(ms/1000));
+      return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0");
+    }
+
+    // Appelé à chaque NOUVEL événement/compétence reçu.
+    function handleFxTrack(ev){
+      // un vrai ÉVÉNEMENT met fin aux gages « jusqu'au prochain événement »
+      // ainsi qu'au chrono d'apnée (qui dure « le plus longtemps possible »).
+      if (ev.kind === "event") activeFx = activeFx.filter(f => !f.untilNext && !f.countUp);
+      if (!ev.track) return;
+      const now = serverNow();
+      activeFx = activeFx.filter(f => f.label !== (ev.title || "")); // pas de doublon
+      activeFx.push({
+        label: ev.title || "EFFET",
+        icon: ev.icon || "⚠",
+        untilNext: !!ev.track.untilNext,
+        countUp: !!ev.track.countUp,
+        startAt: now,
+        endsAt: ev.track.ms ? now + ev.track.ms : null
+      });
+    }
+
+    // Construit la liste affichée : effets d'état (confinement/brouillage par
+    // équipe) + gages physiques suivis. Rendu toutes les 250 ms.
+    function renderFx(){
+      const now = serverNow();
+      const rows = [];
+      ["A","B"].forEach((side) => {
+        const remLock = lockUntil[side] - now;
+        if (remLock > 0) rows.push({ icon:"⛔", label:"CONFINEMENT", team:teamNames[side],
+                                     time:fmtDown(remLock), warn:remLock <= 5000 });
+        const remScr = scrambleUntil[side] - now;
+        if (remScr > 0) rows.push({ icon:"📡", label:"BROUILLAGE", team:teamNames[side],
+                                    time:fmtDown(remScr), warn:remScr <= 5000 });
+      });
+      // purge les gages terminés (sauf untilNext / countUp qui durent)
+      activeFx = activeFx.filter(f => f.untilNext || f.countUp || (f.endsAt && f.endsAt > now));
+      activeFx.forEach((f) => {
+        if (f.untilNext)      rows.push({ icon:f.icon, label:f.label, untilNext:true,
+                                          time:"JUSQU'AU PROCHAIN ÉVÉNEMENT" });
+        else if (f.countUp)   rows.push({ icon:f.icon, label:f.label, countUp:true,
+                                          time:"⏱ " + fmtUp(now - f.startAt) });
+        else { const rem = f.endsAt - now;
+               rows.push({ icon:f.icon, label:f.label, time:fmtDown(rem), warn:rem <= 5000 }); }
+      });
+
+      fxbar.innerHTML = rows.map((r) => {
+        const cls = "fxchip" + (r.untilNext ? " untilnext" : "") +
+                    (r.countUp ? " countup" : "") + (r.warn ? " warn" : "");
+        const team = r.team ? `<span class="fxteam">${r.team}</span>` : "";
+        return `<div class="${cls}"><span class="fxi">${r.icon}</span>` +
+               `<span class="fxmeta"><span class="fxname">${r.label}</span>${team}</span>` +
+               `<span class="fxtime">${r.time}</span></div>`;
+      }).join("");
+    }
+
     /* ===== SCÈNES + vidéo teaser ===== */
     let ytPlayer = null, ytReady = false, wantTeaser = false;
     function createPlayer(){
@@ -534,6 +633,7 @@
         // on remet les parts à 0, on efface le confinement / le vainqueur de la
         // 1ère question, et on repart sur le teaser.
         (async () => {
+          activeFx = []; if (fxbar) fxbar.innerHTML = "";
           await clearEvent(); await clearMusic();
           resetState(); clearFirstWinner(); setAlarm(false); setScene("teaser");
           start();
@@ -632,6 +732,7 @@
           }
           el.classList.toggle("scrambled", (scrambleUntil[side] - serverNow()) > 0);
         });
+        renderFx();   // met à jour le tableau des effets actifs
       }, 250);
 
       // événements / animations de compétence
@@ -643,6 +744,7 @@
         if (ev.id === lastId) return;
         lastId = ev.id;
         playSkill(ev);
+        handleFxTrack(ev);
       });
     }
 

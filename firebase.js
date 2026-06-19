@@ -303,7 +303,11 @@ export function clearEvent() {
 }
 
 // Déclenche une animation sur le tableau (id unique => rejoue à chaque fois).
-export function fireEvent({ anim, title, sub, team, amount, voice, hold, icon }) {
+//  - track : décrit l'effet à afficher dans le TABLEAU DES EFFETS ACTIFS du
+//            tableau (compte à rebours, chrono, ou « jusqu'au prochain event »).
+//  - kind  : "event" ou "skill" — seuls les ÉVÉNEMENTS mettent fin aux gages
+//            « jusqu'au prochain événement ».
+export function fireEvent({ anim, title, sub, team, amount, voice, hold, icon, track, kind }) {
   if (!db) return Promise.resolve();
   return set(ref(db, eventPath), {
     id: Date.now() + "-" + Math.random().toString(36).slice(2, 7),
@@ -315,6 +319,8 @@ export function fireEvent({ anim, title, sub, team, amount, voice, hold, icon })
     voice: voice || null,
     hold: hold ?? null,
     icon: icon || null,
+    track: track || null,
+    kind: kind || "event",
     ts: serverTimestamp()
   });
 }
@@ -337,7 +343,8 @@ export async function launchSkill(skillId, attacker, amount) {
         title: "VACCIN — ATTAQUE BLOQUÉE",
         sub: "La souche visée était immunisée.",
         team: victim,
-        voice: VOICES.vaccinBlock
+        voice: VOICES.vaccinBlock,
+        kind: "skill"
       });
       return;   // l'attaque n'a aucun effet
     }
@@ -354,7 +361,8 @@ export async function launchSkill(skillId, attacker, amount) {
     sub: skill.desc,
     team: skill.needsTarget ? attacker : null,
     amount: typeof real === "number" ? real : null,
-    voice: skill.voice
+    voice: skill.voice,
+    kind: "skill"
   });
 }
 
@@ -412,46 +420,60 @@ export const EVENTS = [
   },
 
   // --- GAGES PHYSIQUES : affichent une consigne au tableau (aucune part touchée).
-  //     hold = durée d'affichage plus longue pour laisser le temps de lire/faire.
+  //     hold  = durée d'affichage de la grosse animation (laisse le temps de lire).
+  //     track = effet suivi dans le TABLEAU DES EFFETS ACTIFS du tableau :
+  //               { ms }        => compte à rebours de N millisecondes
+  //               { countUp }   => chronomètre qui monte (« le + longtemps possible »)
+  //               { untilNext } => reste affiché « jusqu'au prochain événement »
   {
     id: "decontamination", name: "DÉCONTAMINATION", tag: "POMPES", icon: "🧴", anim: "alert", hold: 13000,
-    desc: "Un membre fait 15 POMPES pour purger la zone.", voice: VOICES.decontamination
+    desc: "Un membre fait 15 POMPES pour purger la zone.", voice: VOICES.decontamination,
+    track: { ms: 30000 }
   },
   {
     id: "vertige", name: "VERTIGE", tag: "VERTIGE", icon: "🌀", anim: "alert", hold: 13000,
-    desc: "Une personne tourne 10 FOIS sur elle-même, puis reprend.", voice: VOICES.vertige
+    desc: "Une personne tourne 10 FOIS sur elle-même, puis reprend.", voice: VOICES.vertige,
+    track: { ms: 20000 }
   },
   {
     id: "convulsions", name: "CONVULSIONS", tag: "CONVULSIONS", icon: "🦠", anim: "alert", hold: 13000,
-    desc: "Toute l'équipe TREMBLE sans s'arrêter pendant 20 secondes.", voice: VOICES.convulsions
+    desc: "Toute l'équipe TREMBLE sans s'arrêter pendant 20 secondes.", voice: VOICES.convulsions,
+    track: { ms: 20000 }
   },
   {
     id: "apnee", name: "APNÉE", tag: "APNÉE", icon: "🫁", anim: "alert", hold: 13000,
-    desc: "Une personne RETIENT SA RESPIRATION le plus longtemps possible.", voice: VOICES.apnee
+    desc: "Une personne RETIENT SA RESPIRATION le plus longtemps possible.", voice: VOICES.apnee,
+    track: { countUp: true }
   },
   {
     id: "porteursain", name: "PORTEUR SAIN", tag: "MAIN TÊTE", icon: "🤚", anim: "alert", hold: 13000,
-    desc: "Une personne garde UNE MAIN SUR LA TÊTE jusqu'au prochain événement.", voice: VOICES.porteursain
+    desc: "Une personne garde UNE MAIN SUR LA TÊTE jusqu'au prochain événement.", voice: VOICES.porteursain,
+    track: { untilNext: true }
   },
   {
     id: "paralysie", name: "PARALYSIE", tag: "MAINS KO", icon: "🧟", anim: "alert", hold: 13000,
-    desc: "Le chef d'équipe ne peut PLUS UTILISER SES MAINS jusqu'au prochain événement.", voice: VOICES.paralysie
+    desc: "Le chef d'équipe ne peut PLUS UTILISER SES MAINS jusqu'au prochain événement.", voice: VOICES.paralysie,
+    track: { untilNext: true }
   },
   {
     id: "quarantaineperso", name: "MISE EN QUARANTAINE", tag: "SILENCE", icon: "🙊", anim: "alert", hold: 13000,
-    desc: "La dernière personne à avoir parlé SE TAIT jusqu'au prochain événement.", voice: VOICES.quarantaineperso
+    desc: "La dernière personne à avoir parlé SE TAIT jusqu'au prochain événement.", voice: VOICES.quarantaineperso,
+    track: { untilNext: true }
   },
   {
     id: "mutationmotrice", name: "MUTATION MOTRICE", tag: "EN CRABE", icon: "🦀", anim: "alert", hold: 13000,
-    desc: "Tout le monde se déplace EN CRABE jusqu'au prochain événement.", voice: VOICES.mutationmotrice
+    desc: "Tout le monde se déplace EN CRABE jusqu'au prochain événement.", voice: VOICES.mutationmotrice,
+    track: { untilNext: true }
   },
   {
     id: "cri", name: "CRI DE RALLIEMENT", tag: "CRI", icon: "📣", anim: "alert", hold: 13000,
-    desc: "L'équipe doit HURLER SON NOM DE SOUCHE à l'unisson !", voice: VOICES.cri
+    desc: "L'équipe doit HURLER SON NOM DE SOUCHE à l'unisson !", voice: VOICES.cri,
+    track: { ms: 10000 }
   },
   {
     id: "isolement", name: "ISOLEMENT", tag: "ISOLEMENT", icon: "🧍", anim: "alert", hold: 13000,
-    desc: "Une personne va dans un coin, DOS AU GROUPE, pendant 1 minute.", voice: VOICES.isolement
+    desc: "Une personne va dans un coin, DOS AU GROUPE, pendant 1 minute.", voice: VOICES.isolement,
+    track: { ms: 60000 }
   }
 ];
 
@@ -462,5 +484,6 @@ export async function launchEvent(id) {
   const ev = getEventDef(id);
   if (!ev) return;
   if (ev.effect) await ev.effect();
-  await fireEvent({ anim: ev.anim, title: ev.name, sub: ev.desc, voice: ev.voice, hold: ev.hold, icon: ev.icon });
+  await fireEvent({ anim: ev.anim, title: ev.name, sub: ev.desc, voice: ev.voice,
+                    hold: ev.hold, icon: ev.icon, track: ev.track, kind: "event" });
 }
